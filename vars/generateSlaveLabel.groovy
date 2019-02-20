@@ -1,4 +1,3 @@
-
-def call() {
-	return "jenkins-slave-${UUID.randomUUID().toString()}"
+def call()  {
+    "jenkins-slave-${UUID.randomUUID().toString()}"
 }
