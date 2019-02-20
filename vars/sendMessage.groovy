@@ -1,5 +1,5 @@
 def simple(String msg = 'An empty message.') {
-    echo "INFO: ${msg}"
+    colorText "INFO: ${msg}"
 }
 
 def slack(sendSlackNotification, repositoryName, status, lastCommit, additionalText) {
