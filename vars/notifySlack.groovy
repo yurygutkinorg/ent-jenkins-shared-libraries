@@ -1,8 +1,4 @@
-def simple(String msg = 'An empty message.') {
-    colorText "INFO: ${msg}"
-}
-
-def slack(sendSlackNotification, repositoryName, status, lastCommit, additionalText) {
+def call(sendSlackNotification, repositoryName, status, lastCommit, additionalText) {
     // https://jenkins.io/doc/pipeline/examples/#slacknotify
 
     colorText 'Sending slack message:'
@@ -18,10 +14,10 @@ def slack(sendSlackNotification, repositoryName, status, lastCommit, additionalT
 
     if (sendSlackNotification) {
         withCredentials([
-            string(
-                credentialsId: 'slack_enterprise_ci_bot',
-                variable: 'slack_enterprise_ci_bot'
-            )
+                string(
+                        credentialsId: 'slack_enterprise_ci_bot',
+                        variable: 'slack_enterprise_ci_bot'
+                )
         ]) {
             sh """
                 curl -X POST -H 'Content-type: application/json' \
