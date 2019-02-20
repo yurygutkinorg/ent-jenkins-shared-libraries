@@ -4,7 +4,7 @@ def call(String text, String color = 'green') {
     def selected = colors[color.toLowerCase()]
 
     if (selected == null) {
-        selected = "48"
+        selected = "47"
     }
 
     wrap([$class: 'AnsiColorBuildWrapper']) {
