@@ -7,6 +7,6 @@ def call(String text, color='green'){
 	selected = colors[color.toLowerCase()]
 
 	wrap([$class: 'AnsiColorBuildWrapper']) {
-		echo "\u001B[${selected}m ${text}\u001B[0m"
+		echo "\u001B[${selected}m${text}\u001B[0m"
 	}
 }
