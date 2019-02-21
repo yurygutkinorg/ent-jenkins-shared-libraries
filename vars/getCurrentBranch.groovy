@@ -1,3 +1,3 @@
 def call() {
-    scm.branches[0].name
+    sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
 }
