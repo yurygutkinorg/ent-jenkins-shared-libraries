@@ -1,3 +1,3 @@
 def call() {
-    sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+    describable.branchMatches(script.getProperty("env").getProperty("BRANCH_NAME"))
 }
