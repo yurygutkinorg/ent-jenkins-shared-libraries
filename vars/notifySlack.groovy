@@ -1,7 +1,7 @@
 def call(sendSlackNotification, repositoryName, status, additionalText) {
     // https://jenkins.io/doc/pipeline/examples/#slacknotify
 
-    podTemplate(label: label, containers: [
+    podTemplate(label: generateSlaveLabel(), containers: [
         containerTemplate(
             name: 'gh-tools',
             image: 'pkprzekwas/all-in-one:8b85399',
