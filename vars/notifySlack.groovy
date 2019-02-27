@@ -24,20 +24,20 @@ def call(sendSlackNotification, repositoryName, status, additionalText) {
         ]) {
             sh """
                 curl -X POST -H 'Content-type: application/json' \
-                    --data '{"attachments": [ \
-                                { \
-                                    "fallback": "${fallback}", \
-                                    "color": "${barColor}", \
-                                    "title": "${title}", \
-                                    "title_link": "${BUILD_URL}", \
-                                    "text": "${text}", \
-                                    "fields": [{ \
-                                        "title": "Status", \
-                                        "value": "${status}", \
-                                        "short":false \
-                                    }] \
-                                } \
-                            ]}' "${env.slack_enterprise_ci_bot}"
+                  --data '{"attachments": [ \
+                    { \
+                      "fallback": "${fallback}", \
+                      "color": "${barColor}", \
+                      "title": "${title}", \
+                      "title_link": "${BUILD_URL}", \
+                      "text": "${text}", \
+                      "fields": [{ \
+                        "title": "Status", \
+                        "value": "${status}", \
+                        "short":false \
+                      }] \
+                    } \
+                  ]}' "${env.slack_enterprise_ci_bot}"
             """
         }
     }
