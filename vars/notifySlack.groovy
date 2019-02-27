@@ -1,4 +1,4 @@
-def call(sendSlackNotification, repositoryName, status, additionalText) {
+def call(sendSlackNotification, repositoryName, status, lastCommit, additionalText) {
     // https://jenkins.io/doc/pipeline/examples/#slacknotify
 
     label = generateSlaveLabel()
@@ -13,10 +13,7 @@ def call(sendSlackNotification, repositoryName, status, additionalText) {
         node(label) {
             stage('Sending slack notification') {
                 container('gh-tools') {
-                    colorText 'Sending slack message:'
-
-                    lastCommitScript = 'git --no-pager show -s --format="The last committer was %an/%ae, %ar%nCommit Message: %s%n"'
-                    lastCommit = sh(returnStdout: true, script: lastCommitScript).trim()
+                    colorText 'Sending slack message...'
 
                     barColor = '#36a64f'
                     if (status == 'Failure') {
