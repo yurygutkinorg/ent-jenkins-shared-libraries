@@ -1,7 +1,10 @@
-def call(sendSlackNotification, repositoryName, status, lastCommit, additionalText) {
+def call(sendSlackNotification, repositoryName, status, additionalText) {
     // https://jenkins.io/doc/pipeline/examples/#slacknotify
 
     colorText 'Sending slack message:'
+
+    lastCommitScript = 'git --no-pager show -s --format="The last committer was %an/%ae, %ar%nCommit Message: %s%n"'
+    lastCommit = sh(returnStdout: true, script: lastCommitScript).trim()
 
     barColor = '#36a64f'
     if (status == 'Failure') {
