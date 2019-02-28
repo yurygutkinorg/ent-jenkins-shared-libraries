@@ -18,9 +18,10 @@ def call(sendSlackNotification, repositoryName, status, lastCommit, additionalTe
                     barColor = '#f44242'
                 }
 
+                branchName = getCurrentBranch()
                 title = "Jenkins Build Status"
                 fallback = "Required plain-text summary of the attachment."
-                text = "Repository: ${repositoryName}\nBranch: ${BRANCH_NAME}\n${lastCommit}\n${additionalText}"
+                text = "Repository: ${repositoryName}\nBranch: ${branchName}\n${lastCommit}\n${additionalText}"
 
                 if (sendSlackNotification) {
                     withCredentials([string(
