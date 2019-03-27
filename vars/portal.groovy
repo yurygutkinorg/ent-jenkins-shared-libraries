@@ -58,7 +58,7 @@ def download_all_configs() {
     sh(
       """
         cp *.yaml helm/portal
-        cp portal-dev-cron-config.yaml helm/cron
+        cp portal-${env.PORTAL_ENV}-cron-config.yaml helm/cron
       """
     )
   }
