@@ -120,7 +120,7 @@ def deploy_portal_app(app_name, ingress_enabled=true, prod_mode=false) {
     helm upgrade --wait --install portal-${app_name}-${target_color}-${env.PORTAL_ENV} \
     -f ${helm_dir}/values.${app_name}.yaml \
     --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
-    --set global.testRelease=${test_release},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
+    --set global.testRelease=${test_release},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
     ${helm_dir} \
     --namespace portal-${env.PORTAL_ENV}
   """)
