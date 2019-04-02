@@ -1,7 +1,7 @@
-def get_portal_version_from_dynamodb() {
+def get_portal_version_from_dynamodb(app_name) {
   // Temporary solution. Gonna be changed once we migrate to trunk based dev.
-  common_file_path = "portal-${env.PORTAL_ENV}-common-env.json"
-  return sh(returnStdout: true, script: "cat ${common_file_path} | jq --raw-output '.appVersion'").trim()
+  file_path = "portal-${env.PORTAL_ENV}-${app_name}-env.json"
+  return sh(returnStdout: true, script: "cat ${file_path} | jq --raw-output '.appVersion'").trim()
 }
 
 def get_portal_version_from_cluster(app_name) {
@@ -83,32 +83,34 @@ def get_target_color(app_name) {
   }
 }
 
-def download_jq() {
-  sh ("""
-    wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux32
-    chmod +x jq-linux32
-    mv jq-linux32 /usr/local/bin/jq
+def package_chart(helm_dir, app_version) {
+  sh("""
+    helm package --app-version=${app_version} --save=false ${helm_dir}
   """)
 }
 
-def deploy_portal_app(app_name, ingress_enabled=true, prod_mode=false) {
+def get_new_app_version(app_name, test_release=false) {
+  if (test_release) {
+    new_app_version = get_portal_version_from_dynamodb(app_name)
+  } else {
+    app_version = get_portal_version_from_cluster(app_name)
+    if (app_version == "null" || app_version == "") {
+      app_version = "0.0.0"
+    }
+    new_app_version = bump_version(app_version)
+  }
+  return new_app_version
+}
+
+def get_current_app_version(app_name) {
+  current_app_version = get_portal_version_from_cluster(app_name)
+  return current_app_version
+}
+
+def deploy_new_release(app_name, prod_mode) {
   println "PROD MODE passed: ${prod_mode}"
-  download_jq()
   download_all_configs()
-  live_color = get_live_color(app_name)
   target_color = get_target_color(app_name)
-  app_version = get_portal_version_from_cluster(app_name)
-  if (app_version == "null" || app_version == "") {
-    app_version = "0.0.0"
-  }
-
-  new_app_version = bump_version(app_version)
-
-  helm_dir = "helm/portal"
-
-  if (app_name == "cron") {
-    helm_dir = "helm/cron"
-  }
 
   test_release = prod_mode
 
@@ -116,58 +118,121 @@ def deploy_portal_app(app_name, ingress_enabled=true, prod_mode=false) {
     test_release = true
   }
 
+  new_app_version = get_new_app_version(app_name, test_release)
+
+  helm_dir = "helm/portal"
+
+  package_chart(helm_dir, new_app_version)
+
   sh("""
     helm upgrade --wait --install portal-${app_name}-${target_color}-${env.PORTAL_ENV} \
     -f ${helm_dir}/values.${app_name}.yaml \
     --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
     --set global.testRelease=${test_release},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
+    portal-0.0.1.tgz \
+    --namespace portal-${env.PORTAL_ENV}
+  """)
+}
+
+def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
+  current_app_version = get_current_app_version(app_name)
+  new_app_version = get_new_app_version(app_name, is_prod_mode)
+  target_color = get_target_color(app_name)
+
+  deploy_new_release(app_name, is_prod_mode)
+
+  ingress_enabled = ! is_worker
+  if (current_app_version == "null" || current_app_version == "") {
+    // setup ingress
+    sh("helm upgrade --wait --install --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} portal-${app_name}-${env.PORTAL_ENV}-ingress helm/main-ingress/ --namespace portal-${env.PORTAL_ENV}")
+  }
+
+  if (is_prod_mode != true) {
+    if (current_app_version != "null" && current_app_version != "") {
+      swapped_color = swap_dns(app_name, ingress_enabled, is_prod_mode)
+      scale_down(app_name, swapped_color)
+      if (is_worker) {
+        exit_status = fix_queues(new_app_version, current_app_version, is_prod_mode)
+        if (exit_status != 0) {
+          currentBuild.result = 'FAILED'
+          error 'queue fix returned non-zero status'
+        }
+      }
+    }
+  }
+}
+
+def deploy_cronjobs() {
+  helm_dir = "helm/cron"
+
+  download_all_configs()
+
+  sh("""
+    helm upgrade --wait --install portal-cron-${env.PORTAL_ENV} \
+    -f ${helm_dir}/values.cron.yaml \
+    --set envName=${env.PORTAL_ENV} \
     ${helm_dir} \
     --namespace portal-${env.PORTAL_ENV}
   """)
-
-  if (test_release) {
-    return;
-  }
-
-  swap_dns(app_name, target_color, new_app_version, ingress_enabled)
-  if (live_color != "null" && live_color != "") {
-    scale_down(app_name, live_color)
-  }
 }
 
-def swap_dns(app_name, color, app_version, enabled) {
-  sh("helm upgrade --wait --install --set enabled=${enabled},activeColor=${color},appVersion=${app_version},appType=${app_name},envName=${env.PORTAL_ENV} portal-${app_name}-${env.PORTAL_ENV}-ingress helm/main-ingress/ --namespace portal-${env.PORTAL_ENV}")
+def swap_dns(app_name, ingress_enabled=true, test_release=false) {
+  swapped_color = get_live_color(app_name)
+  target_color = get_target_color(app_name)
+  new_app_version = get_new_app_version(app_name, test_release)
+
+  sh("helm upgrade --wait --install --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} portal-${app_name}-${env.PORTAL_ENV}-ingress helm/main-ingress/ --namespace portal-${env.PORTAL_ENV}")
+  return swapped_color
 }
 
 def scale_down(app_name, color) {
-  if (app_name == "cron") {
-    sh("helm delete --purge portal-${app_name}-${color}-${env.PORTAL_ENV}")
-  } else {
-    sh("helm upgrade --wait --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} helm/portal --set deployment.enabled=false --namespace=portal-${env.PORTAL_ENV}")
+  if (color != "" && color != "null") {
+    sh("helm upgrade --wait --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} portal-0.0.1.tgz --set deployment.enabled=false --namespace=portal-${env.PORTAL_ENV}")
   }
 }
 
-def disable_test_mode_on_release(color) {
-  return sh(returnStatus: true, script: "helm upgrade --wait --install --reuse-values portal-${color}-${env.PORTAL_ENV} portal-helm --set global.testRelease=false --namespace portal-${env.PORTAL_ENV}")
+def disable_test_mode_on_release(app_name, color) {
+  return sh(returnStatus: true, script: "helm upgrade --wait --install --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} portal-0.0.1.tgz --set global.testRelease=false --namespace portal-${env.PORTAL_ENV}")
 }
 
-def swap_only() {  
-  println("parameters passed were environment = ${env.PORTAL_ENV}, docker tag = ${env.DOCKER_IMAGE_TAG}")
-  sh """
-    wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux32
-    chmod +x jq-linux32
-    mv jq-linux32 /usr/local/bin/jq
-  """
-  live_color = get_live_color()
-  target_color = get_target_color()
+def run_prod_mode_post_deployment_operations(app_name) {
   download_all_configs()
-  update_dep()
-  disable_test_mode_on_release(target_color)
-  app_version = get_portal_version_from_dynamodb()
-  swap_dns(target_color, app_version)
-  if (live_color != "" && live_color != "null") {
-    scale_down(live_color)
+
+  is_worker = false
+
+  current_app_version = get_current_app_version(app_name)
+  new_app_version = get_new_app_version(app_name, true)
+  helm_dir = "helm/portal"
+  target_color = get_target_color(app_name)
+  package_chart(helm_dir, new_app_version)
+  disable_test_mode_on_release(app_name, target_color)
+  if (app_name in ["static-worker", "dynamic-worker"]) {
+    is_worker = true
   }
+  ingress_enabled = !is_worker
+  swapped_color = swap_dns(app_name, ingress_enabled, true)
+  scale_down(app_name, swapped_color)
+  if (is_worker) {
+    exit_status = fix_queues(new_app_version, current_app_version, true)
+    if (exit_status != 0) {
+      currentBuild.result = 'FAILED'
+      error 'queue fix returned non-zero status'
+    }
+  }
+}
+
+def fix_queues(new_release, old_release, prod_mode=false) {
+  if (env.PORTAL_ENV == "prod") {
+    url = "portal-util.guardanthealth.com"
+  } else {
+    url = "portal-util-${env.PORTAL_ENV}.guardanthealth.com"
+  }
+
+  statusCode = sh(
+    script: "curl -f -H 'Authorization: ${env.PORTAL_UTIL_API_KEY}' https://${url}/queue_fix -d 'new_release=${env.PORTAL_ENV}-${new_release}' -d 'old_release=${env.PORTAL_ENV}-${old_release}' -d 'prod_mode=${prod_mode}'",
+    returnStatus: true  
+  )
+  return statusCode
 }
 
 def merge_jsons(file1, file2, output_path) {
