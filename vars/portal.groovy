@@ -5,7 +5,7 @@ def get_portal_version_from_dynamodb(app_name) {
 }
 
 def get_portal_version_from_cluster(app_name) {
-  return sh (script: "helm get values portal-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.appVersion'", returnStdout: true).trim()
+  return sh(script: "helm get values portal-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.appVersion'", returnStdout: true).trim()
 }
 
 def bump_version(String app_version) {
@@ -15,21 +15,17 @@ def bump_version(String app_version) {
 }
 
 def convert_json_to_yaml(src_filename) {
-  sh """
-    python deployment-scripts/portal/json-to-yaml.py --file-name ${src_filename}
-  """
+  sh "python deployment-scripts/portal/json-to-yaml.py --file-name ${src_filename}"
 }
 
 def copy_yaml_file_to_chart_folder(file_name, target_path) {
-  if (fileExists(file_name)) {
-    sh """
-      cp ${file_name} ${target_path}
-    """
-  }
-  else {
-    echo "dynamodb yaml config file not found. exiting now"
+  if (!fileExists(file_name)) {
+    echo "DynamoDB yaml config file not found. Exiting now."
     sh "exit 1"
+    return
   }
+
+  sh "cp ${file_name} ${target_path}"
 }
 
 def download_all_configs() {
@@ -41,11 +37,13 @@ def download_all_configs() {
     "dynamic-worker",
     "cron"
   ]
+
   withAWS(region:'us-west-2', credentials:'aws_s3_artifacts_credentials') {
-    sh("python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-config --mode scan")
-    sh("python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-env --mode scan")
+    sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-config --mode scan"
+    sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-env --mode scan"
+    
     for (app in apps) {
-      sh("""
+      sh """
         python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-config --mode scan
         python merge-jsons.py portal-${env.PORTAL_ENV}-common-config.json portal-${env.PORTAL_ENV}-${app}-config.json --output portal-${env.PORTAL_ENV}-${app}-config.json
         python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-config.json
@@ -53,24 +51,24 @@ def download_all_configs() {
         python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-env --mode scan
         python merge-jsons.py portal-${env.PORTAL_ENV}-common-env.json portal-${env.PORTAL_ENV}-${app}-env.json --output portal-${env.PORTAL_ENV}-${app}-env.json
         python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-env.json
-      """)
+      """
     }
-    sh(
-      """
-        cp *.yaml helm/portal
-        cp portal-${env.PORTAL_ENV}-cron-config.yaml helm/cron
-      """
-    )
+
+    sh """
+      cp *.yaml helm/portal
+      cp portal-${env.PORTAL_ENV}-cron-config.yaml helm/cron
+    """
   }
 }
 
 def get_live_color(app_name) {
-  return sh (script: "helm get values portal-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.activeColor' || true", returnStdout: true).trim()
+  return sh(script: "helm get values portal-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.activeColor' || true", returnStdout: true).trim()
 }
 
 def get_target_color(app_name) {
   live_color = get_live_color(app_name)
-  // install/upgrade a helm release with color tag for e.g. for dev environment, the releases would be dev-web-blue or dev-web-green
+  
+  // Install/Upgrade a helm release with color tag (e.g. for dev environment, the releases would be dev-web-blue or dev-web-green)
   if ("${live_color}" == "" || "${live_color}" == "null" || "${live_color}" == "blue"){
     return "green"
   }
@@ -84,21 +82,21 @@ def get_target_color(app_name) {
 }
 
 def package_chart(helm_dir, app_version) {
-  sh("""
-    helm package --app-version=${app_version} --save=false ${helm_dir}
-  """)
+  sh "helm package --app-version=${app_version} --save=false ${helm_dir}"
 }
 
 def get_new_app_version(app_name, test_release=false) {
   if (test_release) {
     new_app_version = get_portal_version_from_dynamodb(app_name)
-  } else {
-    app_version = get_portal_version_from_cluster(app_name)
-    if (app_version == "null" || app_version == "") {
-      app_version = "0.0.0"
-    }
-    new_app_version = bump_version(app_version)
+    return new_app_version
+  } 
+  
+  app_version = get_portal_version_from_cluster(app_name)
+  if (app_version == "null" || app_version == "") {
+    app_version = "0.0.0"
   }
+  new_app_version = bump_version(app_version)
+
   return new_app_version
 }
 
@@ -108,30 +106,27 @@ def get_current_app_version(app_name) {
 }
 
 def deploy_new_release(app_name, prod_mode) {
-  println "PROD MODE passed: ${prod_mode}"
+  echo "PROD MODE passed: ${prod_mode}"
   download_all_configs()
   target_color = get_target_color(app_name)
 
   test_release = prod_mode
-
   if (env.PORTAL_ENV == "prod") {
     test_release = true
   }
 
   new_app_version = get_new_app_version(app_name, test_release)
-
   helm_dir = "helm/portal"
-
   package_chart(helm_dir, new_app_version)
 
-  sh("""
+  sh """
     helm upgrade --wait --install portal-${app_name}-${target_color}-${env.PORTAL_ENV} \
-    -f ${helm_dir}/values.${app_name}.yaml \
-    --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
-    --set global.testRelease=${test_release},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
-    portal-0.0.1.tgz \
-    --namespace portal-${env.PORTAL_ENV}
-  """)
+      -f ${helm_dir}/values.${app_name}.yaml \
+      --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
+      --set global.testRelease=${test_release},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
+      portal-0.0.1.tgz \
+      --namespace portal-${env.PORTAL_ENV}
+  """
 }
 
 def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
@@ -144,15 +139,22 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
   ingress_enabled = ! is_worker
   if (current_app_version == "null" || current_app_version == "") {
     // setup ingress
-    sh("helm upgrade --wait --install --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} portal-${app_name}-${env.PORTAL_ENV}-ingress helm/main-ingress/ --namespace portal-${env.PORTAL_ENV}")
+    sh """
+      helm upgrade --wait --install portal-${app_name}-${env.PORTAL_ENV}-ingress \
+        --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
+        helm/main-ingress/ \
+        --namespace portal-${env.PORTAL_ENV} 
+    """
   }
 
   if (is_prod_mode != true) {
     if (current_app_version != "null" && current_app_version != "") {
       swapped_color = swap_dns(app_name, ingress_enabled, is_prod_mode)
       scale_down(app_name, swapped_color)
+      
       if (is_worker) {
         exit_status = fix_queues(new_app_version, current_app_version, is_prod_mode)
+        
         if (exit_status != 0) {
           currentBuild.result = 'FAILED'
           error 'queue fix returned non-zero status'
@@ -167,27 +169,39 @@ def deploy_cronjobs() {
 
   download_all_configs()
 
-  sh("""
+  sh """
     helm upgrade --wait --install portal-cron-${env.PORTAL_ENV} \
-    -f ${helm_dir}/values.cron.yaml \
-    --set envName=${env.PORTAL_ENV} \
-    ${helm_dir} \
-    --namespace portal-${env.PORTAL_ENV}
-  """)
+      -f ${helm_dir}/values.cron.yaml \
+      --set envName=${env.PORTAL_ENV} \
+      ${helm_dir} \
+      --namespace portal-${env.PORTAL_ENV}
+  """
 }
 
 def swap_dns(app_name, ingress_enabled=true, test_release=false) {
+  helm_dir = "helm/main-ingress"
+  
   swapped_color = get_live_color(app_name)
   target_color = get_target_color(app_name)
   new_app_version = get_new_app_version(app_name, test_release)
 
-  sh("helm upgrade --wait --install --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} portal-${app_name}-${env.PORTAL_ENV}-ingress helm/main-ingress/ --namespace portal-${env.PORTAL_ENV}")
+  sh """
+    helm upgrade --wait --install portal-${app_name}-${env.PORTAL_ENV}-ingress \
+      --set enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
+      ${helm_dir} \
+      --namespace portal-${env.PORTAL_ENV}
+  """
   return swapped_color
 }
 
 def scale_down(app_name, color) {
   if (color != "" && color != "null") {
-    sh("helm upgrade --wait --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} portal-0.0.1.tgz --set deployment.enabled=false --namespace=portal-${env.PORTAL_ENV}")
+    sh """
+      helm upgrade --wait --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} \
+        --set deployment.enabled=false \
+        portal-0.0.1.tgz \
+        --namespace=portal-${env.PORTAL_ENV}
+    """
   }
 }
 
@@ -206,14 +220,18 @@ def run_prod_mode_post_deployment_operations(app_name) {
   target_color = get_target_color(app_name)
   package_chart(helm_dir, new_app_version)
   disable_test_mode_on_release(app_name, target_color)
+
   if (app_name in ["static-worker", "dynamic-worker"]) {
     is_worker = true
   }
+
   ingress_enabled = !is_worker
   swapped_color = swap_dns(app_name, ingress_enabled, true)
   scale_down(app_name, swapped_color)
+
   if (is_worker) {
     exit_status = fix_queues(new_app_version, current_app_version, true)
+
     if (exit_status != 0) {
       currentBuild.result = 'FAILED'
       error 'queue fix returned non-zero status'
@@ -236,9 +254,7 @@ def fix_queues(new_release, old_release, prod_mode=false) {
 }
 
 def merge_jsons(file1, file2, output_path) {
-  sh """
-    python deployment-scripts/portal/merge-jsons.py ${file1} ${file2} --output ${output_path}
-  """
+  sh "python deployment-scripts/portal/merge-jsons.py ${file1} ${file2} --output ${output_path}"
 }
 
 def switch_context(env_name, kube_config_prefix, k8s_home_dir) {
