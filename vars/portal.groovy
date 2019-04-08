@@ -150,7 +150,7 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
   if (is_prod_mode != true) {
     if (current_app_version != "null" && current_app_version != "") {
       swapped_color = swap_dns(app_name, ingress_enabled, is_prod_mode)
-      scale_down(app_name, swapped_color)
+      scale_down(app_name, swapped_color, current_app_version)
       
       if (is_worker) {
         exit_status = fix_queues(new_app_version, current_app_version, is_prod_mode)
@@ -194,8 +194,9 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false) {
   return swapped_color
 }
 
-def scale_down(app_name, color) {
+def scale_down(app_name, color, version) {
   if (color != "" && color != "null") {
+    package_chart("helm/portal", version)
     sh """
       helm upgrade --wait --reuse-values portal-${app_name}-${color}-${env.PORTAL_ENV} \
         --set deployment.enabled=false \
@@ -227,7 +228,7 @@ def run_prod_mode_post_deployment_operations(app_name) {
 
   ingress_enabled = !is_worker
   swapped_color = swap_dns(app_name, ingress_enabled, true)
-  scale_down(app_name, swapped_color)
+  scale_down(app_name, swapped_color, current_app_version)
 
   if (is_worker) {
     exit_status = fix_queues(new_app_version, current_app_version, true)
