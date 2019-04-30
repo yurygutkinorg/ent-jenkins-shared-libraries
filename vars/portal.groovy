@@ -95,11 +95,6 @@ def deploy_new_release(app_name, prod_mode) {
   download_all_configs()
   target_color = get_target_color(app_name)
 
-  test_release = prod_mode
-  if (env.PORTAL_ENV == "prod" || env.PORTAL_ENV == "val") {
-    test_release = true
-  }
-
   new_app_version = get_portal_version_from_dynamodb(app_name)
   helm_dir = "helm/portal"
   package_chart(helm_dir, new_app_version)
@@ -108,13 +103,17 @@ def deploy_new_release(app_name, prod_mode) {
     helm upgrade --wait --install portal-${app_name}-${target_color}-${env.PORTAL_ENV} \
       -f ${helm_dir}/values.${app_name}.yaml \
       --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
-      --set global.testRelease=${test_release},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
+      --set global.testRelease=${prod_mode},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
       portal-0.0.1.tgz \
       --namespace portal-${env.PORTAL_ENV}
   """
 }
 
 def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
+  if (env.PORTAL_ENV == "prod" || env.PORTAL_ENV == "val") {
+    is_prod_mode = true
+  }
+
   current_app_version = get_current_app_version(app_name)
   new_app_version = get_portal_version_from_dynamodb(app_name)
   target_color = get_target_color(app_name)
