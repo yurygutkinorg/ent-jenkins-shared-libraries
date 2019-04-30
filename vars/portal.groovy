@@ -85,21 +85,6 @@ def package_chart(helm_dir, app_version) {
   sh "helm package --app-version=${app_version} --save=false ${helm_dir}"
 }
 
-def get_new_app_version(app_name, test_release=false) {
-  if (test_release) {
-    new_app_version = get_portal_version_from_dynamodb(app_name)
-    return new_app_version
-  } 
-  
-  app_version = get_portal_version_from_cluster(app_name)
-  if (app_version == "null" || app_version == "") {
-    app_version = "0.0.0"
-  }
-  new_app_version = bump_version(app_version)
-
-  return new_app_version
-}
-
 def get_current_app_version(app_name) {
   current_app_version = get_portal_version_from_cluster(app_name)
   return current_app_version
@@ -111,11 +96,11 @@ def deploy_new_release(app_name, prod_mode) {
   target_color = get_target_color(app_name)
 
   test_release = prod_mode
-  if (env.PORTAL_ENV == "prod") {
+  if (env.PORTAL_ENV == "prod" || env.PORTAL_ENV == "val") {
     test_release = true
   }
 
-  new_app_version = get_new_app_version(app_name, test_release)
+  new_app_version = get_portal_version_from_dynamodb(app_name)
   helm_dir = "helm/portal"
   package_chart(helm_dir, new_app_version)
 
@@ -131,7 +116,7 @@ def deploy_new_release(app_name, prod_mode) {
 
 def deploy_portal(app_name, is_prod_mode=false, is_worker=false) {
   current_app_version = get_current_app_version(app_name)
-  new_app_version = get_new_app_version(app_name, is_prod_mode)
+  new_app_version = get_portal_version_from_dynamodb(app_name)
   target_color = get_target_color(app_name)
 
   deploy_new_release(app_name, is_prod_mode)
@@ -183,7 +168,7 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false) {
   
   swapped_color = get_live_color(app_name)
   target_color = get_target_color(app_name)
-  new_app_version = get_new_app_version(app_name, test_release)
+  new_app_version = get_portal_version_from_dynamodb(app_name)
 
   sh """
     helm upgrade --wait --install portal-${app_name}-${env.PORTAL_ENV}-ingress \
@@ -216,7 +201,7 @@ def run_prod_mode_post_deployment_operations(app_name) {
   is_worker = false
 
   current_app_version = get_current_app_version(app_name)
-  new_app_version = get_new_app_version(app_name, true)
+  new_app_version = get_portal_version_from_dynamodb(app_name)
   helm_dir = "helm/portal"
   target_color = get_target_color(app_name)
   package_chart(helm_dir, new_app_version)
