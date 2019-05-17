@@ -101,6 +101,7 @@ def deploy_new_release(app_name, prod_mode) {
 
   sh """
     helm upgrade --wait --install portal-${app_name}-${target_color}-${env.PORTAL_ENV} \
+      --recreate-pods=${prod_mode} \
       -f ${helm_dir}/values.${app_name}.yaml \
       --set envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
       --set global.testRelease=${prod_mode},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
