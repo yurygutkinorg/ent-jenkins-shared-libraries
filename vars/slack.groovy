@@ -12,7 +12,8 @@ def notify(Map args) {
     }
     
     // https://jenkins.io/doc/pipeline/examples/#slacknotify
-    label = "slack-${utils.generateSlaveLabel()}"
+    label = utils.constrainLabelToSpecifications("slack-${utils.generateSlaveLabel()}")
+
     lastCommit = utils.getLastCommit()
 
     podTemplate(label: label, containers: [
