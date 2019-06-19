@@ -92,7 +92,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
         }
         steps {
           script{
-            RELEASE_VERSION = branch_name.split('-')[1].trim()
+            RELEASE_VERSION = branch_name.split("${enzyme_project}-")[1].trim()
           }
         }
       }
@@ -134,22 +134,27 @@ def call(String enzyme_project, String branch_name, String build_tag) {
         }
       }
 
-      stage('Publish snapshots to artifactory') {
+      stage('Publish snapshots to artifactory') {    
         when {
           allOf{
             expression { utils.verifySemVer(sem_ver: RELEASE_VERSION) }
             expression { branch_name.contains(enzyme_project) }
           }
         }
+        
         steps {
           withCredentials([
           string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
           string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
           string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
         ]) {
-            container('gradle') {
-              echo 'Push snapshots to artifactory'
-              sh 'make publish'
+            withEnv(["RELEASE_VERSION=${RELEASE_VERSION}"]){
+              container('gradle') {
+                echo "RELEASE_VERSION ${RELEASE_VERSION}"
+                echo "env.RELEASE_VERSION ${env.RELEASE_VERSION}"
+                echo 'Push snapshots to artifactory'
+                sh 'make publish'
+              }
             }
           }
         }
@@ -167,16 +172,17 @@ def call(String enzyme_project, String branch_name, String build_tag) {
           withCredentials([
             usernamePassword(credentialsId: "GHENZYME_ARTIFACTORY_DOCKER_REGISTRY", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
           ]) {
-            container('docker') {
-              echo 'Login to docker registry'
-              sh 'make docker-login'
-              echo 'Build and publish docker image'
-              sh 'make docker-publish'
-              
+            withEnv(["RELEASE_VERSION=${RELEASE_VERSION}"]){
+              container('docker') {
+                echo 'Login to docker registry'
+                sh 'make docker-login'
+                echo 'Build and publish docker image'
+                sh 'make docker-publish'
+                }
+              }
             }
           }
         }
-      }
       
       stage('Check if release branch and check if repo is a service, Trigger enzyme deployment job') {
         when {

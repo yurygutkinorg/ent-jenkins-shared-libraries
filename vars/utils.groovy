@@ -47,12 +47,13 @@ def constrainLabelToSpecifications(String label) {
     if(label.length() >= 63){
         echo "Return truncated string so since it is not beyond the 63 character limit and not ending with non-alpha-numeric characters."
         def truncatedLabel = label.substring(0, 62)
-
+        def length = truncatedLabel.length()
         // Checking if trailing character is non alpha-numeric, and truncating until it is
-        while(!Character.isLetter(truncatedLabel.charAt(truncatedLabel.length() - 1)) &&  !Character.isDigit(truncatedLabel.charAt(truncatedLabel.length() - 1))) {
-            truncatedLabel = truncatedLabel.substring(0, truncatedLabel.length() - 1)
-            echo "truncatedLabel ${truncatedLabel}"
+        while(!Character.isLetter(truncatedLabel.charAt(length - 1)) &&  !Character.isDigit(truncatedLabel.charAt(length - 1))) {
+            truncatedLabel = truncatedLabel.substring(0, length - 1)
+            length = truncatedLabel.length()
         }
+        echo "truncatedLabel = ${truncatedLabel}"
         return truncatedLabel
     }
     return label
