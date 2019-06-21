@@ -138,7 +138,6 @@ def call(String enzyme_project, String branch_name, String build_tag) {
         when {
           allOf{
             expression { utils.verifySemVer(sem_ver: RELEASE_VERSION) }
-            expression { branch_name.contains(enzyme_project) }
           }
         }
         
