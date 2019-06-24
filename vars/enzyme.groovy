@@ -75,7 +75,6 @@ def call(String enzyme_project, String branch_name, String build_tag) {
       SEND_SLACK_NOTIFICATION = true
       RELEASE_VERSION         = "none"
       TARGET_ENVIRONMENT      = "dev"
-      ENZYME_SERVICES         = "auth|billing|clinical|curation|exchange|file|finance|ivd-reporting|message|misc|omni-reporting"
     }
 
     stages {
@@ -164,7 +163,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
           allOf{
             expression { utils.verifySemVer(sem_ver: RELEASE_VERSION) }
             expression { branch_name.contains(enzyme_project) }
-            expression { env.ENZYME_SERVICES.contains(enzyme_project) }
+            expression { utils.checkIfEnzymeService(enzyme_project) }
           }
         }
         steps {
@@ -188,7 +187,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
           allOf{
             expression { utils.verifySemVer(sem_ver: RELEASE_VERSION) }
             expression { branch_name.contains(enzyme_project) }
-            expression { env.ENZYME_SERVICES.contains(enzyme_project) }
+            expression { utils.checkIfEnzymeService(enzyme_project) }
           }
         }
         steps {

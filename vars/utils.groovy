@@ -66,3 +66,8 @@ def verifySemVer(Map args) {
     // regex checks for XX.XX.XX, where X is a decimal
     return args.sem_ver.matches(/^([1-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])$/)
 }
+
+def checkIfEnzymeService(String serviceName) {
+    def serviceList = ["auth", "billing", "clinical", "curation", "exchange", "file", "finance", "ivd-reporting", "message", "misc", "omni-reporting"]
+    return serviceList.contains(serviceName)
+}
