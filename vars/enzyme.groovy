@@ -195,9 +195,8 @@ def call(String enzyme_project, String branch_name, String build_tag) {
             job: "/Kubernetes/enzyme/enzyme-project-deployment",
             parameters: [
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
-              string(name: 'BRANCH_NAME', value: "sqa"),
               string(name: 'ENZYME_PROJECT', value: enzyme_project),
-              string(name: 'DOCKER_TAG', value: env.DOCKER_TAG)
+              string(name: 'RELEASE_VERSION', value: env.DOCKER_TAG)
             ], quietPeriod: 2
           )
         }
