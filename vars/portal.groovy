@@ -38,27 +38,25 @@ def download_all_configs() {
     "cron"
   ]
 
-  withAWS(region:'us-west-2', credentials:'aws_s3_artifacts_credentials') {
-    sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-config --mode scan"
-    sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-env --mode scan"
-    
-    for (app in apps) {
-      sh """
-        python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-config --mode scan
-        python merge-jsons.py portal-${env.PORTAL_ENV}-common-config.json portal-${env.PORTAL_ENV}-${app}-config.json --output portal-${env.PORTAL_ENV}-${app}-config.json
-        python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-config.json
-
-        python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-env --mode scan
-        python merge-jsons.py portal-${env.PORTAL_ENV}-common-env.json portal-${env.PORTAL_ENV}-${app}-env.json --output portal-${env.PORTAL_ENV}-${app}-env.json
-        python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-env.json
-      """
-    }
-
+  sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-config --mode scan"
+  sh "python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key common-env --mode scan"
+  
+  for (app in apps) {
     sh """
-      cp *.yaml helm/portal
-      cp portal-${env.PORTAL_ENV}-cron-config.yaml helm/cron
+      python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-config --mode scan
+      python merge-jsons.py portal-${env.PORTAL_ENV}-common-config.json portal-${env.PORTAL_ENV}-${app}-config.json --output portal-${env.PORTAL_ENV}-${app}-config.json
+      python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-config.json
+
+      python dynamodb.py --table-name portal-${env.PORTAL_ENV} --primary-key ${app}-env --mode scan
+      python merge-jsons.py portal-${env.PORTAL_ENV}-common-env.json portal-${env.PORTAL_ENV}-${app}-env.json --output portal-${env.PORTAL_ENV}-${app}-env.json
+      python json-to-yaml.py --file-name portal-${env.PORTAL_ENV}-${app}-env.json
     """
   }
+
+  sh """
+    cp *.yaml helm/portal
+    cp portal-${env.PORTAL_ENV}-cron-config.yaml helm/cron
+  """
 }
 
 def get_live_color(app_name) {
