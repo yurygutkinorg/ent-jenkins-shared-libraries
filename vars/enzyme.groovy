@@ -192,7 +192,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
         }
         steps {
           build(
-            job: "/Kubernetes/enzyme/enzyme-project-deployment",
+            job: "/deployments/enzyme",
             parameters: [
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
               string(name: 'ENZYME_PROJECT', value: enzyme_project),
