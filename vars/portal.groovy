@@ -8,6 +8,10 @@ def get_portal_version_from_cluster(app_name) {
   return sh(script: "helm get values portal-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.appVersion'", returnStdout: true).trim()
 }
 
+def is_release_deployed(app_name, color) {
+  return sh(script: "helm get values portal-${app_name}-${color}-${env.PORTAL_ENV} --output json | jq '.deployment.enabled'", returnStdout: true).trim().toBoolean()
+}
+
 def bump_version(String app_version) {
   version_parts = app_version.tokenize('.')
   minor = version_parts[2].toInteger() + 1
@@ -202,6 +206,10 @@ def run_prod_mode_post_deployment_operations(app_name) {
   new_app_version = get_portal_version_from_dynamodb(app_name)
   helm_dir = "helm/portal"
   target_color = get_target_color(app_name)
+  if (!is_release_deployed(app_name, target_color)) {
+    currentBuild.result = 'FAILED'
+    error 'No hidden instances deployed'
+  }
   package_chart(helm_dir, new_app_version)
   disable_test_mode_on_release(app_name, target_color)
 
