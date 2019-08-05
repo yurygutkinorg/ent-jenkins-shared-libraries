@@ -16,15 +16,7 @@ def colorText(Map args) {
 }
 
 def getLastCommit() {
-  lastCommitScript = """
-git show --no-pager -s \
-  --format="The last committer was %an/%ae, %ar%nCommit Message: %s%n" \
-  | echo "Missing commit message"
-"""
-  return sh(
-    returnStdout: true, 
-    script: "${lastCommitScript}"
-  ).trim()
+  return sh(returnStdout: true, script: 'git show -q').trim()
 }
 
 def getCurrentBranch() {

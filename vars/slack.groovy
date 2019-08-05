@@ -5,7 +5,11 @@ def notify(Map args) {
 
   // https://jenkins.io/doc/pipeline/examples/#slacknotify
   label = utils.constrainLabelToSpecifications("slack-${utils.generateSlaveLabel()}")
-
+  container('jnlp') {
+    lastCommit = utils.getLastCommit()
+    branchName = utils.getCurrentBranch()
+  }
+  
   podTemplate(label: label, containers: [
     containerTemplate(
       name: 'gh-tools',
@@ -17,8 +21,6 @@ def notify(Map args) {
     node(label) {
       container('gh-tools') {
         barColor = (args.status == 'Success') ? '#36a64f' :'#f44242' 
-        lastCommit = utils.getLastCommit()
-        branchName = utils.getCurrentBranch()
         title = "Jenkins Build Status"
         fallback = "Required plain-text summary of the attachment."
         text = """
@@ -28,18 +30,14 @@ ${lastCommit}
 ${args.additionalText}
 """
         data = """
-{ \
-  "attachments": [ \
-    { \
-      "fallback": "${fallback}", \
-      "color": "${barColor}", \
-      "title": "${title}", \
-      "title_link": "${env.BUILD_URL}", \
-      "text": "${text}", \
-      "fields": [ { "title": "Status", "value": "${args.status}", "short": false } ] \
-    } \
-  ] \
-}
+{ "attachments": [ \
+  { "fallback": "${fallback}", \
+    "color": "${barColor}", \
+    "title": "${title}", \
+    "title_link": "${env.BUILD_URL}", \
+    "text": "${text}", \
+    "fields": [ { "title": "Status", "value": "${args.status}", "short": false } ] } \
+]}
 """
         withCredentials([string(
           credentialsId: 'slack_enterprise_ci_bot',
