@@ -33,7 +33,7 @@ def getCommitID() {
 
 def generateSlaveLabel() {
   // if command is used in context of Multibranch Pipeline read value from ENV
-  if (env.BUILD_TAG) { return "${env.BUILD_TAG}" }
+  if (env.BUILD_TAG) { return constrainLabelToSpecifications("${env.BUILD_TAG}") }
   return "slave-${UUID.randomUUID().toString()}"
 }
 
