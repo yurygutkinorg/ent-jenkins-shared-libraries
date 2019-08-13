@@ -1,7 +1,6 @@
 def get_portal_version_from_dynamodb(app_name, project_name) {
   // Temporary solution. Gonna be changed once we migrate to trunk based dev.
-  file_path = "${project_name}-${env.PORTAL_ENV}-${app_name}-env.json"
-  return sh(returnStdout: true, script: "cat ${file_path} | jq --raw-output '.appVersion'").trim()
+  return sh(returnStdout: true, script: "make python-dynamodb-get-current-version-from-dynamodb PROJECT_NAME=${project_name} APP_NAME=${app_name}").trim()
 }
 
 def get_portal_version_from_cluster(app_name, project_name) {
@@ -12,26 +11,6 @@ def is_release_deployed(app_name, color, project_name) {
   return sh(script: "helm get values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV} --output json | jq '.deployment.enabled'", returnStdout: true).trim().toBoolean()
 }
 
-def bump_version(String app_version) {
-  version_parts = app_version.tokenize('.')
-  minor = version_parts[2].toInteger() + 1
-  return "${version_parts[0]}.${version_parts[1]}.${minor}"
-}
-
-def convert_json_to_yaml(src_filename) {
-  sh "python deployment-scripts/portal/json-to-yaml.py --file-name ${src_filename}"
-}
-
-def copy_yaml_file_to_chart_folder(file_name, target_path) {
-  if (!fileExists(file_name)) {
-    echo "DynamoDB yaml config file not found. Exiting now."
-    sh "exit 1"
-    return
-  }
-
-  sh "cp ${file_name} ${target_path}"
-}
-
 def download_all_configs(project_name) {
   apps = [
     "web",
@@ -39,28 +18,12 @@ def download_all_configs(project_name) {
     "legacy-web",
     "static-worker",
     "dynamic-worker",
-    "cron"
   ]
 
-  sh "python dynamodb.py --table-name ${project_name}-${env.PORTAL_ENV} --primary-key common-config --mode scan"
-  sh "python dynamodb.py --table-name ${project_name}-${env.PORTAL_ENV} --primary-key common-env --mode scan"
-  
   for (app in apps) {
-    sh """
-      python dynamodb.py --table-name ${project_name}-${env.PORTAL_ENV} --primary-key ${app}-config --mode scan
-      python merge-jsons.py ${project_name}-${env.PORTAL_ENV}-common-config.json ${project_name}-${env.PORTAL_ENV}-${app}-config.json --output ${project_name}-${env.PORTAL_ENV}-${app}-config.json
-      python json-to-yaml.py --file-name ${project_name}-${env.PORTAL_ENV}-${app}-config.json
-
-      python dynamodb.py --table-name ${project_name}-${env.PORTAL_ENV} --primary-key ${app}-env --mode scan
-      python merge-jsons.py ${project_name}-${env.PORTAL_ENV}-common-env.json ${project_name}-${env.PORTAL_ENV}-${app}-env.json --output ${project_name}-${env.PORTAL_ENV}-${app}-env.json
-      python json-to-yaml.py --file-name ${project_name}-${env.PORTAL_ENV}-${app}-env.json
-    """
+    sh "APP_NAME=${app} PROJECT_NAME=${project_name} make python-dynamodb-get-values"
   }
-
-  sh """
-    cp *.yaml helm/portal
-    cp ${project_name}-${env.PORTAL_ENV}-cron-config.yaml helm/cron
-  """
+  sh "APP_NAME=cron PROJECT_NAME=${project_name} CHART_DIR=helm/cron make python-dynamodb-get-values"
 }
 
 def get_live_color(app_name, project_name) {
@@ -69,7 +32,6 @@ def get_live_color(app_name, project_name) {
 }
 
 def get_target_color(app_name, project_name) {
-
   live_color = get_live_color(app_name, project_name)
   
   // Install/Upgrade a helm release with color tag (e.g. for dev environment, the releases would be dev-web-blue or dev-web-green)
@@ -134,7 +96,7 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
       helm upgrade --wait --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
         --set domain=${domain},nameOverride=${project_name},enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
         helm/main-ingress/ \
-        --namespace ${project_name}-${env.PORTAL_ENV} 
+        --namespace ${project_name}-${env.PORTAL_ENV}
     """
   }
 
@@ -249,21 +211,4 @@ def fix_queues(new_release, old_release, prod_mode=false) {
   return statusCode
 }
 
-def merge_jsons(file1, file2, output_path) {
-  sh "python deployment-scripts/portal/merge-jsons.py ${file1} ${file2} --output ${output_path}"
-}
 
-def switch_context(env_name, kube_config_prefix, k8s_home_dir) {
-  KUBE_CONTEXT = 'cluster2.k8s.ghdna.io'
-
-  if (env_name == 'prod') {
-    KUBE_CONTEXT = 'prod.k8s.ghdna.io'
-  }
-
-  sh """
-    # Set kube config to use
-    mkdir -p "${k8s_home_dir}"
-    cp "${kube_config_prefix}/${KUBE_CONTEXT}/config" "${k8s_home_dir}/config"
-    kubectl config use-context ${KUBE_CONTEXT}
-  """
-}
