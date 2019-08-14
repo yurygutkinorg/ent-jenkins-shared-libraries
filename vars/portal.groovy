@@ -117,7 +117,7 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
   }
 }
 
-def deploy_cronjobs() {
+def deploy_cronjobs(project_name) {
   helm_dir = "helm/cron"
 
   download_all_configs(project_name)
