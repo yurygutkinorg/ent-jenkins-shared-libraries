@@ -60,6 +60,6 @@ def verifySemVer(Map args) {
 }
 
 def checkIfEnzymeService(String serviceName) {
-  def serviceList = ["auth", "billing", "clinical", "curation", "exchange", "file", "finance", "ivd-reporting", "message", "misc", "omni-reporting", "problem-case"]
+  def serviceList = ["auth", "billing", "clinical", "curation", "exchange", "file", "finance", "ivd-reporting", "message", "misc", "omni-reporting", "problem-case", "iuo-reporting"]
   return serviceList.contains(serviceName)
 }
