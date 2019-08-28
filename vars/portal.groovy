@@ -77,7 +77,7 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
 }
 
 def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, domain) {
-  if (env.PORTAL_ENV == "prod" || env.PORTAL_ENV == "val") {
+  if (env.PORTAL_ENV == "prod") {
     is_prod_mode = true
   }
 
