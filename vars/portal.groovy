@@ -12,7 +12,7 @@ def is_release_deployed(app_name, color, project_name) {
 }
 
 def download_all_configs(project_name) {
-  apps = [
+  def apps = [
     "web",
     "util",
     "legacy-web",
@@ -33,7 +33,7 @@ def get_live_color(app_name, project_name) {
 
 def get_target_color(app_name, project_name) {
   live_color = get_live_color(app_name, project_name)
-  
+
   // Install/Upgrade a helm release with color tag (e.g. for dev environment, the releases would be dev-web-blue or dev-web-green)
   if ("${live_color}" == "" || "${live_color}" == "null" || "${live_color}" == "blue"){
     return "green"
@@ -52,27 +52,38 @@ def package_chart(helm_dir, app_version) {
 }
 
 def get_current_app_version(app_name, project_name) {
-  current_app_version = get_portal_version_from_cluster(app_name, project_name)
+  def current_app_version = get_portal_version_from_cluster(app_name, project_name)
   return current_app_version
 }
 
 def deploy_new_release(app_name, prod_mode, project_name, domain) {
   echo "PROD MODE passed: ${prod_mode}"
-  download_all_configs(project_name)
-  target_color = get_target_color(app_name, project_name)
 
-  new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
-  helm_dir = "helm/portal"
+  download_all_configs(project_name)
+
+  def target_color = get_target_color(app_name, project_name)
+  def new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+  def helm_dir = "helm/portal"
+
   package_chart(helm_dir, new_app_version)
 
   sh """
-    helm upgrade --wait --install ${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV}  \
+    helm upgrade \
+      --wait \
+      --debug \
+      --install ${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV} \
       --recreate-pods=${prod_mode} \
-      -f ${helm_dir}/values.${app_name}.yaml \
-      --set domain=${domain},nameOverride=${project_name},envName=${env.PORTAL_ENV},global.appVersion=${new_app_version},global.instanceColor=${target_color} \
-      --set global.testRelease=${prod_mode},deployment.image.repository=${env.DOCKER_REPO},deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
-      portal-0.0.1.tgz \
-      --namespace ${project_name}-${env.PORTAL_ENV}
+      --values ${helm_dir}/values.${app_name}.yaml \
+      --set domain=${domain} \
+      --set nameOverride=${project_name} \
+      --set envName=${env.PORTAL_ENV} \
+      --set global.appVersion=${new_app_version} \
+      --set global.instanceColor=${target_color} \
+      --set global.testRelease=${prod_mode} \
+      --set deployment.image.repository=${env.DOCKER_REPO} \
+      --set deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
+      --namespace ${project_name}-${env.PORTAL_ENV} \
+      portal-0.0.1.tgz
   """
 }
 
@@ -81,11 +92,11 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
     is_prod_mode = true
   }
 
-  current_app_version = get_current_app_version(app_name, project_name)
+  def current_app_version = get_current_app_version(app_name, project_name)
 
-  new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+  def new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
 
-  target_color = get_target_color(app_name, project_name)
+  def target_color = get_target_color(app_name, project_name)
 
   deploy_new_release(app_name, is_prod_mode, project_name, domain)
 
@@ -93,21 +104,29 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
   if (current_app_version == "null" || current_app_version == "") {
     // setup ingress
     sh """
-      helm upgrade --wait --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
-        --set domain=${domain},nameOverride=${project_name},enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
-        helm/main-ingress/ \
-        --namespace ${project_name}-${env.PORTAL_ENV}
+      helm upgrade \
+        --wait \
+        --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
+        --set domain=${domain} \
+        --set nameOverride=${project_name} \
+        --set enabled=${ingress_enabled} \
+        --set activeColor=${target_color} \
+        --set appVersion=${new_app_version} \
+        --set appType=${app_name} \
+        --set envName=${env.PORTAL_ENV} \
+        --namespace ${project_name}-${env.PORTAL_ENV} \
+        helm/main-ingress/
     """
   }
 
   if (is_prod_mode != true) {
     if (current_app_version != "null" && current_app_version != "") {
-      swapped_color = swap_dns(app_name, ingress_enabled, is_prod_mode, project_name, domain)
+      def swapped_color = swap_dns(app_name, ingress_enabled, is_prod_mode, project_name, domain)
       scale_down(app_name, swapped_color, current_app_version, project_name, domain)
-      
+
       if (is_worker) {
-        exit_status = fix_queues(new_app_version, current_app_version, is_prod_mode)
-        
+        def exit_status = fix_queues(new_app_version, current_app_version, is_prod_mode)
+
         if (exit_status != 0) {
           currentBuild.result = 'FAILED'
           error 'queue fix returned non-zero status'
@@ -133,7 +152,7 @@ def deploy_cronjobs(project_name) {
 
 def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, domain) {
   helm_dir = "helm/main-ingress"
-  
+
   swapped_color = get_live_color(app_name, project_name)
   target_color = get_target_color(app_name, project_name)
   new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
@@ -206,7 +225,7 @@ def fix_queues(new_release, old_release, prod_mode=false) {
 
   statusCode = sh(
     script: "curl -f -H 'Authorization: ${env.PORTAL_UTIL_API_KEY}' https://${url}/queue_fix -d 'new_release=${env.PORTAL_ENV}-${new_release}' -d 'old_release=${env.PORTAL_ENV}-${old_release}' -d 'prod_mode=${prod_mode}'",
-    returnStatus: true  
+    returnStatus: true
   )
   return statusCode
 }

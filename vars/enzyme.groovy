@@ -133,13 +133,13 @@ def call(String enzyme_project, String branch_name, String build_tag) {
         }
       }
 
-      stage('Publish snapshots to artifactory') {    
+      stage('Publish snapshots to artifactory') {
         when {
           allOf{
             expression { utils.verifySemVer(sem_ver: RELEASE_VERSION) }
           }
         }
-        
+
         steps {
           withCredentials([
           string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
@@ -157,7 +157,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
           }
         }
       }
-      
+
       stage('Check if release branch and check if repo is a service, Login to Docker registry, build and publish docker image') {
         when {
           allOf{
@@ -181,7 +181,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
             }
           }
         }
-      
+
       stage('Check if release branch and check if repo is a service, Trigger enzyme deployment job') {
         when {
           allOf{
