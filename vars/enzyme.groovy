@@ -102,7 +102,7 @@ def call(String enzyme_project, String branch_name, String build_tag) {
             git(
               url: 'https://github.com/guardant/gh-aws.git',
               credentialsId: 'ghauto-github',
-              branch: "sqa"
+              branch: "master"
             )
             echo 'Cloning Makefile to job workspace:'
             sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
