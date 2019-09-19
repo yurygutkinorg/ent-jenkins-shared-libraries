@@ -81,7 +81,6 @@ def call(String enzyme_project, String branch_name, String build_tag) {
       stage('Create shared dir') {
         steps {
           sh "mkdir -p ${env.SHARED_DIR}"
-          sh "echo test"
         }
       }
 
@@ -109,6 +108,27 @@ def call(String enzyme_project, String branch_name, String build_tag) {
             echo 'Cleanup gh-aws project:'
             deleteDir()
           }
+        }
+      }
+
+      stage('Metadata injection to config.properties') {
+        environment {
+          PROPERTIES_FILE_PATH = "src/resources/config/${env.ENZYME_PROJECT}/config.properties"
+        }
+        steps {
+          sh """
+           cat <<EOF >> ${env.PROPERTIES_FILE_PATH}
+
+# BUILD METADATA
+auth.git.sha=${env.GIT_COMMIT}
+auth.git.branch=${env.BRANCH_NAME}
+auth.build.id=${env.BUILD_ID}
+auth.build.number=${env.BUILD_NUMBER}
+auth.build.tag=${env.BUILD_TAG}
+auth.release.version=${env.RELEASE_VERSION}
+
+EOF
+          """
         }
       }
 
