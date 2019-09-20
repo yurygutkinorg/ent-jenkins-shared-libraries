@@ -1,9 +1,10 @@
 
 def call(String enzyme_project, String branch_name, String build_tag) {
+  String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
   pipeline {
     agent {
       kubernetes {
-        label "${build_tag}"
+        label "${short_build_tag}"
         defaultContainer 'common-binaries'
         yaml """
             apiVersion: v1
