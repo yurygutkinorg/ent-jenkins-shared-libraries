@@ -120,12 +120,12 @@ def call(String enzyme_project, String branch_name, String build_tag) {
            cat <<EOF >> ${env.PROPERTIES_FILE_PATH}
 
 # BUILD METADATA
-auth.git.sha=${env.GIT_COMMIT}
-auth.git.branch=${env.BRANCH_NAME}
-auth.build.id=${env.BUILD_ID}
-auth.build.number=${env.BUILD_NUMBER}
-auth.build.tag=${env.BUILD_TAG}
-auth.release.version=${env.RELEASE_VERSION}
+${env.ENZYME_PROJECT}.git.sha=${env.GIT_COMMIT}
+${env.ENZYME_PROJECT}.git.branch=${env.BRANCH_NAME}
+${env.ENZYME_PROJECT}.build.id=${env.BUILD_ID}
+${env.ENZYME_PROJECT}.build.number=${env.BUILD_NUMBER}
+${env.ENZYME_PROJECT}.build.tag=${env.BUILD_TAG}
+${env.ENZYME_PROJECT}.release.version=${env.RELEASE_VERSION}
 
 EOF
           """
