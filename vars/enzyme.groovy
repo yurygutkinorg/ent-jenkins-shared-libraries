@@ -114,9 +114,14 @@ def call(String enzyme_project, String branch_name, String build_tag) {
 
       stage('Metadata injection to config.properties') {
         environment {
-          PROPERTIES_FILE_PATH = "src/resources/config/${env.ENZYME_PROJECT}/config.properties"
+          PROPERTIES_FILE_PATH = sh (script: 'find ./src/resources/config  -name config.properties', returnStdout: true).trim()
         }
         steps {
+          script {
+            if(PROPERTIES_FILE_PATH == "") {
+              error("config.properties does not exist under /src/resources/config.")
+            }
+          }
           sh """
            cat <<EOF >> ${env.PROPERTIES_FILE_PATH}
 
