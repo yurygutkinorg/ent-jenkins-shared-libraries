@@ -70,8 +70,7 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
   sh """
     helm upgrade \
       --wait \
-      --debug \
-      --install ${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV} \
+      --cleanup-on-fail --atomic --install ${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV} \
       --recreate-pods=${prod_mode} \
       --values ${helm_dir}/values.${app_name}.yaml \
       --set domain=${domain} \
