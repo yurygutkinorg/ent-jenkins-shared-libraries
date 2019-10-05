@@ -131,7 +131,7 @@ ${env.ENZYME_PROJECT}.git.branch=${env.BRANCH_NAME}
 ${env.ENZYME_PROJECT}.build.id=${env.BUILD_ID}
 ${env.ENZYME_PROJECT}.build.number=${env.BUILD_NUMBER}
 ${env.ENZYME_PROJECT}.build.tag=${env.BUILD_TAG}
-${env.ENZYME_PROJECT}.release.version=${env.RELEASE_VERSION}
+${env.ENZYME_PROJECT}.release.version=${RELEASE_VERSION}
 
 EOF
           """
