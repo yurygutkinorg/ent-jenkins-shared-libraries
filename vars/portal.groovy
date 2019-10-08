@@ -159,6 +159,7 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, d
 
   sh """
     helm upgrade --wait --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
+      -f helm/custom-values/values.${env.PORTAL_ENV}.yaml \
       --set domain=${domain},nameOverride=${project_name},enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
       ${helm_dir} \
       --namespace ${project_name}-${env.PORTAL_ENV}
