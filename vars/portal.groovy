@@ -15,6 +15,7 @@ def download_all_configs(project_name) {
   def apps = [
     "web",
     "util",
+    "workers",
     "legacy-web",
     "static-worker",
     "dynamic-worker",
