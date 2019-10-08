@@ -9,7 +9,7 @@ def notify(Map args) {
     lastCommit = utils.getLastCommit()
     branchName = utils.getCurrentBranch()
   }
-  
+
   podTemplate(label: label, containers: [
     containerTemplate(
       name: 'gh-tools',
@@ -20,16 +20,18 @@ def notify(Map args) {
   ]) {
     node(label) {
       container('gh-tools') {
-        barColor = (args.status == 'Success') ? '#36a64f' :'#f44242' 
+        barColor = (args.status == 'Success') ? '#36a64f' :'#f44242'
         title = "Jenkins Build Status"
         fallback = "Required plain-text summary of the attachment."
+
         text = """
 Repository: ${args.repositoryName}
 Branch: ${branchName}
-${lastCommit}
+Last commit: ${lastCommit}
 ${args.additionalText}
 """
-        data = """
+
+        rawData = """
 { "attachments": [ \
   { "fallback": "${fallback}", \
     "color": "${barColor}", \
@@ -39,6 +41,8 @@ ${args.additionalText}
     "fields": [ { "title": "Status", "value": "${args.status}", "short": false } ] } \
 ]}
 """
+
+        data = rawData.replace("'", "")
         withCredentials([string(
           credentialsId: 'slack_enterprise_ci_bot',
           variable: 'slack_enterprise_ci_bot')

@@ -1,7 +1,7 @@
 def colorText(Map args) {
   // NOTE: Color codes: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
-  // 
-  // Usage: 
+  //
+  // Usage:
   // `util.colorText(color: 'green', text: 'Some msg')`
   Map colors = [red: "41", green: "42", yellow: "43", blue: "44", magenta: "45", cyan: "46", white: "47"]
 
@@ -15,20 +15,34 @@ def colorText(Map args) {
   }
 }
 
+def _wrap_git_command(cmd) {
+  try {
+    return sh(returnStdout: true, script: cmd).trim()
+  } catch (Exception e) {
+    echo "Error: ${e.message}"
+    return 'GitDataFetchException'
+  }
+}
+
 def getLastCommit() {
-  return sh(returnStdout: true, script: 'git show -q').trim()
+  _wrap_git_command('git show -q')
 }
 
 def getCurrentBranch() {
   // if command is used in context of Multibranch Pipeline read value from ENV
-  if (env.GIT_BRANCH) { return env.GIT_BRANCH } 
-  branchFull = scm.branches[0].name.drop(2)
-  splitBranchFull = branchFull.split('/')
-  return splitBranchFull.last()
+  if (env.GIT_BRANCH) { return env.GIT_BRANCH }
+
+  try {
+    def branchFull = scm.branches[0].name.drop(2)
+    return branchFull.split('/').last()
+  } catch (Exception e) {
+    echo "Error: ${e.message}"
+    return 'GitDataFetchException'
+  }
 }
 
 def getCommitID() {
-  sh(returnStdout: true, script: "git rev-parse HEAD | tr -d '\n'")
+  _wrap_git_command("git rev-parse HEAD | tr -d '\n'")
 }
 
 def generateSlaveLabel() {
