@@ -131,7 +131,7 @@ ${env.ENZYME_PROJECT}.git.branch=${env.BRANCH_NAME}
 ${env.ENZYME_PROJECT}.build.id=${env.BUILD_ID}
 ${env.ENZYME_PROJECT}.build.number=${env.BUILD_NUMBER}
 ${env.ENZYME_PROJECT}.build.tag=${env.BUILD_TAG}
-${env.ENZYME_PROJECT}.release.version=${RELEASE_VERSION}
+${env.ENZYME_PROJECT}.release.version=${env.RELEASE_VERSION}
 
 EOF
           """
@@ -146,13 +146,15 @@ EOF
             string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
             string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
           ]) {
-              container('gradle') {
-                echo 'Start gradle build:'
-                sh 'make build'
-                echo 'Cloning gradle binaries to shared directory'
-                sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
-                echo 'Start static code analysis'
-                sh 'make static-code-analysis'
+              withEnv(["RELEASE_VERSION=${RELEASE_VERSION}"]){
+                container('gradle') {
+                  echo 'Start gradle build:'
+                  sh 'make build'
+                  echo 'Cloning gradle binaries to shared directory'
+                  sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
+                  echo 'Start static code analysis'
+                  sh 'make static-code-analysis'
+                }
               }
             }
           }
