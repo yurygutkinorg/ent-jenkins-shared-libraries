@@ -224,11 +224,20 @@ def fix_queues(new_release, old_release, prod_mode=false) {
     url = "portal-util-${env.PORTAL_ENV}.guardanthealth.com"
   }
 
+  auth_key = x()
+
   statusCode = sh(
-    script: "curl -f -H 'Authorization: ${env.PORTAL_UTIL_API_KEY}' https://${url}/queue_fix -d 'new_release=${env.PORTAL_ENV}-${new_release}' -d 'old_release=${env.PORTAL_ENV}-${old_release}' -d 'prod_mode=${prod_mode}'",
+    script: "curl -f -H 'Authorization: ${auth_key}' https://${url}/queue_fix -d 'new_release=${env.PORTAL_ENV}-${new_release}' -d 'old_release=${env.PORTAL_ENV}-${old_release}' -d 'prod_mode=${prod_mode}'",
     returnStatus: true
   )
   return statusCode
 }
 
+
+def get_auth_token() {
+  auth_key = sh(
+    script: "curl -H 'Content-Type: application/json' --request POST --data '{\"username\": \"${env.PORTAL_UTIL_USERNAME}\", \"password\":\"${env.PORTAL_UTIL_PASSWORD}\"}' ${env.PORTAL_AUTH_URL}",
+    returnStdout: true
+  )
+}
 
