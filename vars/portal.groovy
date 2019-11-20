@@ -218,26 +218,33 @@ def run_prod_mode_post_deployment_operations(app_name, project_name, domain) {
 }
 
 def fix_queues(new_release, old_release, prod_mode=false) {
-  if (env.PORTAL_ENV == "prod") {
-    url = "portal-util.guardanthealth.com"
-  } else {
-    url = "portal-util-${env.PORTAL_ENV}.guardanthealth.com"
-  }
+  String environ = env.PORTAL_ENV
+  String auth_svc_url = env.AUTH_SVC_URL
+  String portal_util_auth_user = env.PORTAL_UTIL_AUTH_USERNAME
+  String portal_util_auth_pass = env.PORTAL_UTIL_AUTH_PASSWORD
 
-  auth_key = x()
+  String util_url = (environ == "prod") ? "portal-util.guardanthealth.com" : "portal-util-${environ}.guardanthealth.com"
+  String auth_token = get_auth_token(portal_util_auth_user, portal_util_auth_pass, auth_svc_url)
 
-  statusCode = sh(
-    script: "curl -f -H 'Authorization: ${auth_key}' https://${url}/queue_fix -d 'new_release=${env.PORTAL_ENV}-${new_release}' -d 'old_release=${env.PORTAL_ENV}-${old_release}' -d 'prod_mode=${prod_mode}'",
+  def status_code = sh(
+    script: """
+      curl -f -H "Authorization: ${auth_token}" \
+        https://${util_url}/queue_fix \
+        -d 'new_release=${environ}-${new_release}' \
+        -d 'old_release=${environ}-${old_release}' \
+        -d 'prod_mode=${prod_mode}'
+    """,
     returnStatus: true
   )
-  return statusCode
+  return status_code
 }
 
 
-def get_auth_token() {
-  auth_key = sh(
-    script: "curl -H 'Content-Type: application/json' --request POST --data '{\"username\": \"${env.PORTAL_UTIL_USERNAME}\", \"password\":\"${env.PORTAL_UTIL_PASSWORD}\"}' ${env.PORTAL_AUTH_URL}",
+def get_auth_token(username, password, url) {
+  String data = "{\"username\": \"${username}\", \"password\":\"${password}\"}"
+  return sh(
+    script: "curl -H 'Content-Type: application/json' -X POST --data '${data}' ${url} | jq -r .token",
     returnStdout: true
-  )
+  ).trim()
 }
 
