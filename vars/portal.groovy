@@ -1,14 +1,43 @@
-def get_portal_version_from_dynamodb(app_name, project_name) {
+// Temporary hack for helm migration to version 3
+String get_helm_bin() {
+  return (env.ENVIRONMENT == 'dev') ? 'helm3' : 'helm'
+}
+
+String get_portal_version_from_dynamodb(String app_name, String project_name) {
   // Temporary solution. Gonna be changed once we migrate to trunk based dev.
-  return sh(returnStdout: true, script: "make python-dynamodb-get-current-version-from-dynamodb PROJECT_NAME=${project_name} APP_NAME=${app_name}").trim()
+  return sh(
+    script: "make python-dynamodb-get-current-version-from-dynamodb PROJECT_NAME=${project_name} APP_NAME=${app_name}",
+    returnStdout: true
+  ).trim()
 }
 
-def get_portal_version_from_cluster(app_name, project_name) {
-  return sh(script: "helm get values ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.appVersion'", returnStdout: true).trim()
+String helm_get_values(String release_name, String namespace) {
+  String helm_values_query = "${get_helm_bin()} get values ${release_name} --output json"
+
+  if (get_helm_bin() == 'helm3') {
+    // Helm3 is scoped to namespaces
+    helm_values_query += " --namespace ${namespace}"
+  }
+
+  return helm_values_query
 }
 
-def is_release_deployed(app_name, color, project_name) {
-  return sh(script: "helm get values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV} --output json | jq '.deployment.enabled'", returnStdout: true).trim().toBoolean()
+String get_portal_version_from_cluster(String app_name, String project_name) {
+  String release_name = "${project_name}-${app_name}-${env.PORTAL_ENV}-ingress"
+  String namespace = "${project_name}-${env.PORTAL_ENV}"
+  return sh(
+    script: "${helm_get_values(release_name, namespace)} | jq -r '.appVersion'",
+    returnStdout: true
+  ).trim()
+}
+
+Boolean is_release_deployed(String app_name, String color, String project_name) {
+  String release_name = "${project_name}-${app_name}-${color}-${env.PORTAL_ENV}"
+  String namespace = "${project_name}-${env.PORTAL_ENV}"
+  return sh(
+    script: "${helm_get_values(release_name, namespace)} | jq -r '.deployment.enabled'",
+    returnStdout: true
+  ).trim().toBoolean()
 }
 
 def download_all_configs(project_name) {
@@ -27,9 +56,13 @@ def download_all_configs(project_name) {
   sh "APP_NAME=cron PROJECT_NAME=${project_name} CHART_DIR=helm/cron make python-dynamodb-get-values"
 }
 
-def get_live_color(app_name, project_name) {
-  echo "helm get values ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.activeColor' || true"
-  return sh(script: "helm get values ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress --output json | jq --raw-output '.activeColor' || true", returnStdout: true).trim()
+String get_live_color(String app_name, String project_name) {
+  String release_name = "${project_name}-${app_name}-${env.PORTAL_ENV}-ingress"
+  String namespace = "${project_name}-${env.PORTAL_ENV}"
+  return sh(
+    script: "${helm_get_values(release_name, namespace)} | jq -r '.activeColor' || true",
+    returnStdout: true
+  ).trim()
 }
 
 def get_target_color(app_name, project_name) {
@@ -49,7 +82,12 @@ def get_target_color(app_name, project_name) {
 }
 
 def package_chart(helm_dir, app_version) {
-  sh "helm package --app-version=${app_version} --save=false ${helm_dir}"
+  if (get_helm_bin() == 'helm') {
+    // Helm2 specific
+    sh "${get_helm_bin()} init --client-only"
+  }
+
+  sh "${get_helm_bin()} package --app-version=${app_version} ${helm_dir}"
 }
 
 def get_current_app_version(app_name, project_name) {
@@ -69,8 +107,9 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
   package_chart(helm_dir, new_app_version)
 
   sh """
-    helm upgrade \
+    ${get_helm_bin()} upgrade \
       --wait \
+      --namespace ${project_name}-${env.PORTAL_ENV} \
       --cleanup-on-fail --atomic --install ${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV} \
       --recreate-pods=${prod_mode} \
       --values ${helm_dir}/values.${app_name}.yaml \
@@ -82,7 +121,6 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
       --set global.testRelease=${prod_mode} \
       --set deployment.image.repository=${env.DOCKER_REPO} \
       --set deployment.image.tag=${env.DOCKER_IMAGE_TAG} \
-      --namespace ${project_name}-${env.PORTAL_ENV} \
       portal-0.0.1.tgz
   """
 }
@@ -104,8 +142,9 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
   if (current_app_version == "null" || current_app_version == "") {
     // setup ingress
     sh """
-      helm upgrade \
+      ${get_helm_bin()} upgrade \
         --wait \
+        --namespace ${project_name}-${env.PORTAL_ENV} \
         --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
         --set domain=${domain} \
         --set nameOverride=${project_name} \
@@ -114,7 +153,6 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
         --set appVersion=${new_app_version} \
         --set appType=${app_name} \
         --set envName=${env.PORTAL_ENV} \
-        --namespace ${project_name}-${env.PORTAL_ENV} \
         helm/main-ingress/
     """
   }
@@ -142,11 +180,13 @@ def deploy_cronjobs(project_name) {
   download_all_configs(project_name)
 
   sh """
-    helm upgrade --wait --install portal-cron-${env.PORTAL_ENV} \
+    ${get_helm_bin()} upgrade \
+      --wait \
+      --namespace ${project_name}-${env.PORTAL_ENV} \
+      --install portal-cron-${env.PORTAL_ENV} \
       -f ${helm_dir}/values.cron.yaml \
       --set envName=${env.PORTAL_ENV} \
-      ${helm_dir} \
-      --namespace ${project_name}-${env.PORTAL_ENV}
+      ${helm_dir}
   """
 }
 
@@ -158,11 +198,13 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, d
   new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
 
   sh """
-    helm upgrade --wait --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
+    ${get_helm_bin()} upgrade \
+      --wait \
+      --namespace ${project_name}-${env.PORTAL_ENV} \
+      --install ${project_name}-${app_name}-${env.PORTAL_ENV}-ingress \
       -f helm/custom-values/values.${env.PORTAL_ENV}.yaml \
       --set domain=${domain},nameOverride=${project_name},enabled=${ingress_enabled},activeColor=${target_color},appVersion=${new_app_version},appType=${app_name},envName=${env.PORTAL_ENV} \
-      ${helm_dir} \
-      --namespace ${project_name}-${env.PORTAL_ENV}
+      ${helm_dir}
   """
   return swapped_color
 }
@@ -170,8 +212,9 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, d
 def scale_down(app_name, color, version, project_name, domain) {
   if (color != "" && color != "null") {
     package_chart("helm/portal", version)
+
     sh """
-      helm upgrade --wait --reuse-values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV}  \
+      ${get_helm_bin()} upgrade --wait --reuse-values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV}  \
         --set domain=${domain},nameOverride=${project_name},deployment.enabled=false \
         portal-0.0.1.tgz \
         --namespace=${project_name}-${env.PORTAL_ENV}
@@ -180,7 +223,10 @@ def scale_down(app_name, color, version, project_name, domain) {
 }
 
 def disable_test_mode_on_release(app_name, color, project_name) {
-  return sh(returnStatus: true, script: "helm upgrade --wait --install --reuse-values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV} portal-0.0.1.tgz  --set global.testRelease=false --namespace ${project_name}-${env.PORTAL_ENV}")
+  return sh(
+    script: "${get_helm_bin()} upgrade --wait --install --reuse-values ${project_name}-${app_name}-${color}-${env.PORTAL_ENV} portal-0.0.1.tgz --set global.testRelease=false --namespace ${project_name}-${env.PORTAL_ENV}",
+    returnStatus: true
+  )
 }
 
 def run_prod_mode_post_deployment_operations(app_name, project_name, domain) {
@@ -217,7 +263,9 @@ def run_prod_mode_post_deployment_operations(app_name, project_name, domain) {
   }
 }
 
-def fix_queues(new_release, old_release, prod_mode=false) {
+Integer fix_queues(new_release, old_release, prod_mode=false) {
+  if (env.ENVIRONMENT == 'dev') return 0 // Skip due to broken auth svc
+
   String environ = env.PORTAL_ENV
   String auth_svc_url = env.AUTH_SVC_URL
   String portal_util_auth_user = env.PORTAL_UTIL_AUTH_USERNAME
@@ -226,7 +274,7 @@ def fix_queues(new_release, old_release, prod_mode=false) {
   String util_url = (environ == "prod") ? "portal-util.guardanthealth.com" : "portal-util-${environ}.guardanthealth.com"
   String auth_token = get_auth_token(portal_util_auth_user, portal_util_auth_pass, auth_svc_url)
 
-  def status_code = sh(
+  Integer status_code = sh(
     script: """
       curl -f -H "Authorization: ${auth_token}" \
         https://${util_url}/queue_fix \
@@ -240,11 +288,13 @@ def fix_queues(new_release, old_release, prod_mode=false) {
 }
 
 
-def get_auth_token(username, password, url) {
+String get_auth_token(username, password, url) {
   String data = "{\"username\": \"${username}\", \"password\":\"${password}\"}"
   return sh(
-    script: "curl -H 'Content-Type: application/json' -X POST --data '${data}' ${url} | jq -r .token",
+    script: """
+      curl -H 'Content-Type: application/json' -X POST --data '${data}' ${url} \
+        | jq --raw-output .token
+    """,
     returnStdout: true
   ).trim()
 }
-
