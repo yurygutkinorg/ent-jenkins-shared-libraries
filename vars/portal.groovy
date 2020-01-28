@@ -176,10 +176,10 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
 
 def print_pod_logs(app_name, project_name, env){
   sh(script: "sleep 3m ", returnStdout: false)
-  target_color = get_target_color(app_name, project_name)
-  deploying_pods = sh(script: "kubectl get pods -n ${project_name}-${env} -l 'app=${project_name}, release=${project_name}-${app_name}-${target_color}-${env}' ", returnStdout: true)
+  live_color = get_live_color(app_name, project_name)
+  deploying_pods = sh(script: "kubectl get pods -n ${project_name}-${env} -l 'app=${project_name}, release=${project_name}-${app_name}-${live_color}-${env}' ", returnStdout: true)
   echo "Deploying ${project_name}-${app_name} to pods: \n ${deploying_pods}"
-  first_deployed_pod = sh(script: "kubectl get pods -n ${project_name}-${env} -l 'app=${project_name}, release=${project_name}-${app_name}-${target_color}-${env}' -o name | head -n 1 ", returnStdout: true)
+  first_deployed_pod = sh(script: "kubectl get pods -n ${project_name}-${env} -l 'app=${project_name}, release=${project_name}-${app_name}-${live_color}-${env}' -o name | head -n 1 ", returnStdout: true)
   pod_logs = sh(script: "kubectl -n ${project_name}-${env} logs --since=5m ${first_deployed_pod} ", returnStdout: true)
   echo "Logs from ${deploying_pods}: ${pod_logs}"
 }
