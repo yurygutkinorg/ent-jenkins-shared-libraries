@@ -54,7 +54,7 @@ String generateSlaveLabel() {
 String constrainLabelToSpecifications(String label) {
   if (label.length() >= 63) {
     String truncatedLabel = label.substring(0, 62)
-    String length = truncatedLabel.length()
+    Integer length = truncatedLabel.length()
 
     // Checking if trailing character is non alpha-numeric, and truncating until it is
     while(!Character.isLetter(truncatedLabel.charAt(length - 1)) && !Character.isDigit(truncatedLabel.charAt(length - 1))) {
