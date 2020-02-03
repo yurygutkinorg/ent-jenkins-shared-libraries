@@ -1,11 +1,11 @@
-def colorText(Map args) {
+void colorText(Map args) {
   // NOTE: Color codes: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
   //
   // Usage:
   // `util.colorText(color: 'green', text: 'Some msg')`
   Map colors = [red: "41", green: "42", yellow: "43", blue: "44", magenta: "45", cyan: "46", white: "47"]
 
-  def selected = colors[args.color.toLowerCase()]
+  String selected = colors[args.color.toLowerCase()]
   if (selected == null) {
     selected = "47"
   }
@@ -15,7 +15,7 @@ def colorText(Map args) {
   }
 }
 
-def _wrap_git_command(cmd) {
+String _wrap_git_command(cmd) {
   try {
     return sh(returnStdout: true, script: cmd).trim()
   } catch (Exception e) {
@@ -24,16 +24,16 @@ def _wrap_git_command(cmd) {
   }
 }
 
-def getLastCommit() {
+String getLastCommit() {
   _wrap_git_command('git show -q')
 }
 
-def getCurrentBranch() {
+String getCurrentBranch() {
   // if command is used in context of Multibranch Pipeline read value from ENV
   if (env.GIT_BRANCH) { return env.GIT_BRANCH }
 
   try {
-    def branchFull = scm.branches[0].name.drop(2)
+    String branchFull = scm.branches[0].name.drop(2)
     return branchFull.split('/').last()
   } catch (Exception e) {
     echo "Error: ${e.message}"
@@ -41,39 +41,101 @@ def getCurrentBranch() {
   }
 }
 
-def getCommitID() {
+String getCommitID() {
   _wrap_git_command("git rev-parse HEAD | tr -d '\n'")
 }
 
-def generateSlaveLabel() {
+String generateSlaveLabel() {
   // if command is used in context of Multibranch Pipeline read value from ENV
   if (env.BUILD_TAG) { return constrainLabelToSpecifications("${env.BUILD_TAG}") }
   return "slave-${UUID.randomUUID().toString()}"
 }
 
-def constrainLabelToSpecifications(String label) {
+String constrainLabelToSpecifications(String label) {
   if (label.length() >= 63) {
-    echo "Return truncated string so since it is not beyond the 63 character limit and not ending with non-alpha-numeric characters."
-    def truncatedLabel = label.substring(0, 62)
-    def length = truncatedLabel.length()
+    String truncatedLabel = label.substring(0, 62)
+    String length = truncatedLabel.length()
+
     // Checking if trailing character is non alpha-numeric, and truncating until it is
-    while(!Character.isLetter(truncatedLabel.charAt(length - 1)) &&  !Character.isDigit(truncatedLabel.charAt(length - 1))) {
+    while(!Character.isLetter(truncatedLabel.charAt(length - 1)) && !Character.isDigit(truncatedLabel.charAt(length - 1))) {
       truncatedLabel = truncatedLabel.substring(0, length - 1)
       length = truncatedLabel.length()
     }
-    echo "truncatedLabel = ${truncatedLabel}"
+    println("Truncated label: ${truncatedLabel}")
     return truncatedLabel
   }
   return label
 }
 
-def verifySemVer(Map args) {
+Boolean verifySemVer(Map args) {
   if (!args.sem_ver) { return false }
   // regex checks for XX.XX.XX, where X is a decimal
   return args.sem_ver.matches(/^([1-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])$/)
 }
 
-def checkIfEnzymeService(String serviceName) {
-  def serviceList = ["auth", "billing", "clinical", "curation", "exchange", "file", "finance", "ivd-reporting", "message", "misc", "omni-reporting", "problem-case", "iuo-reporting", "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting"]
+Boolean checkIfEnzymeService(String serviceName) {
+  List<String> serviceList = [
+    "auth", "billing", "clinical", "curation", "exchange", 
+    "file", "finance", "ivd-reporting", "message", "misc",
+    "omni-reporting", "problem-case", "iuo-reporting", 
+    "g361-reporting", "g360-ps-reporting", "g360-ldt-reporting"
+  ]
   return serviceList.contains(serviceName)
 }
+
+void verifyImageChecksum(Map args) {
+  String podNamePrefix = args.podNamePrefix
+  String jFrogUser = args.jFrogUser
+  String jFrogPass = args.jFrogPass
+  String imageManifestPath = args.imageManifestPath
+  String namespace = args.namespace
+
+  String checksumFromArtifactory = getPodDigestFromArtifactory(jFrogUser, jFrogPass, imageManifestPath, namespace)
+  String podName = getRecentlyDeployedPod(podNamePrefix, namespace)
+  List<String> checksumsFromK8s = getPodDigestsFromK8s(podName, namespace)
+
+  println("Digest from JFrog: ${checksumFromArtifactory}")
+  println("Digests from ${podName} pod: ${checksumsFromK8s}")
+
+  if (checksumFromArtifactory in checksumsFromK8s) {
+    println('Checksum verification successful')
+  } else {
+    error("${checksumFromArtifactory} wasn't found in ${checksumsFromK8s}")
+  }
+}
+
+String getPodDigestFromArtifactory(String user, String pass, String imageManifestPath, String namespace) {
+  String ghArtifactoryStorageApi = "https://ghi.jfrog.io/ghi/api/storage"
+  sh(
+    script: """
+      curl -u ${user}:${pass} ${ghArtifactoryStorageApi}/${imageManifestPath} | jq -r .originalChecksums.sha256
+    """,
+    returnStdout: true,
+  ).trim()
+}
+
+List<String> getPodDigestsFromK8s(String podName, String namespace) {
+  String rawImageIDs = sh(
+    script: """
+      kubectl get -n ${namespace} po ${podName} -ojsonpath="{.status.containerStatuses[*].imageID}"
+    """,
+    returnStdout: true,
+  )
+  List<String> listedImageIDs = rawImageIDs.split(' ')
+  List<String> digests = listedImageIDs.collect { extractDigestFromImageID(it) }
+  digests
+}
+
+String extractDigestFromImageID(String imgID) {
+  imgID.split('sha256:')[1]
+}
+
+String getRecentlyDeployedPod(String pattern, String namespace) {
+  sh(
+    script: """
+      kubectl get -n ${namespace} po --sort-by=.status.startTime | grep ${pattern} | tac | awk '{print \$1}' | head -n1
+    """,
+    returnStdout: true,
+  ).trim()
+}
+
