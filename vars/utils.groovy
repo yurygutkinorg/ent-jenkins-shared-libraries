@@ -75,9 +75,9 @@ Boolean verifySemVer(Map args) {
 
 Boolean checkIfEnzymeService(String serviceName) {
   List<String> serviceList = [
-    "auth", "billing", "clinical", "curation", "exchange", 
+    "auth", "billing", "clinical", "curation", "exchange",
     "file", "finance", "ivd-reporting", "message", "misc",
-    "omni-reporting", "problem-case", "iuo-reporting", 
+    "omni-reporting", "problem-case", "iuo-reporting",
     "g361-reporting", "g360-ps-reporting", "g360-ldt-reporting"
   ]
   return serviceList.contains(serviceName)
@@ -92,13 +92,14 @@ void verifyImageChecksum(Map args) {
 
   String checksumFromArtifactory = getPodDigestFromArtifactory(jFrogUser, jFrogPass, imageManifestPath, namespace)
   String podName = getRecentlyDeployedPod(podNamePrefix, namespace)
+  waitForReadyCondition(podName, namespace)
   List<String> checksumsFromK8s = getPodDigestsFromK8s(podName, namespace)
 
-  println("Digest from JFrog: ${checksumFromArtifactory}")
-  println("Digests from ${podName} pod: ${checksumsFromK8s}")
+  echo("Digest from JFrog: ${checksumFromArtifactory}")
+  echo("Digests from ${podName} pod: ${checksumsFromK8s}")
 
   if (checksumFromArtifactory in checksumsFromK8s) {
-    println('Checksum verification successful')
+    echo('Checksum verification successful')
   } else {
     error("${checksumFromArtifactory} wasn't found in ${checksumsFromK8s}")
   }
@@ -126,8 +127,20 @@ List<String> getPodDigestsFromK8s(String podName, String namespace) {
   digests
 }
 
+void waitForReadyCondition(String podName, String namespace) {
+  String result = sh(
+    script: "kubectl wait --for=condition=Ready -n ${namespace} pod/${podName}",
+    returnStdout: true,
+  )
+  echo(result)
+}
+
 String extractDigestFromImageID(String imgID) {
-  imgID.split('sha256:')[1]
+  if (imgID.contains('sha256:')) {
+    imgID.split('sha256:')[1]
+  } else {
+    error("Invalid image ID: \"${imgID}\". Pod might be still in pending state...")
+  }
 }
 
 String getRecentlyDeployedPod(String pattern, String namespace) {
