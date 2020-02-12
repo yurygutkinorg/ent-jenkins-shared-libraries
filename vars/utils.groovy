@@ -1,3 +1,7 @@
+Boolean isEnabled(Boolean flag) {
+  flag != false || flag != null
+}
+
 void colorText(Map args) {
   // NOTE: Color codes: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
   //
@@ -89,9 +93,14 @@ void verifyImageChecksum(Map args) {
   String jFrogPass = args.jFrogPass
   String imageManifestPath = args.imageManifestPath
   String namespace = args.namespace
+  Boolean debug = args.debug
 
   String checksumFromArtifactory = getPodDigestFromArtifactory(jFrogUser, jFrogPass, imageManifestPath, namespace)
+
+  if (isEnabled(debug)) printPodStates(podNamePrefix, namespace)
+
   String podName = getRecentlyDeployedPod(podNamePrefix, namespace)
+  if (isEnabled(debug)) echo("Most recently deployed pod: ${podName}")
   waitForReadyCondition(podName, namespace)
   List<String> checksumsFromK8s = getPodDigestsFromK8s(podName, namespace)
 
@@ -103,6 +112,15 @@ void verifyImageChecksum(Map args) {
   } else {
     error("${checksumFromArtifactory} wasn't found in ${checksumsFromK8s}")
   }
+}
+
+String getRecentlyDeployedPod(String pattern, String namespace) {
+  sh(
+    script: """
+      kubectl get -n ${namespace} po --sort-by=.status.startTime | grep ${pattern} | tac | awk '{print \$1}' | head -n1
+    """,
+    returnStdout: true,
+  ).trim()
 }
 
 String getPodDigestFromArtifactory(String user, String pass, String imageManifestPath, String namespace) {
@@ -129,7 +147,7 @@ List<String> getPodDigestsFromK8s(String podName, String namespace) {
 
 void waitForReadyCondition(String podName, String namespace) {
   String result = sh(
-    script: "kubectl wait --for=condition=Ready -n ${namespace} pod/${podName}",
+    script: "kubectl wait --for=condition=Initialized -n ${namespace} pod/${podName} --timeout=90s",
     returnStdout: true,
   )
   echo(result)
@@ -143,12 +161,15 @@ String extractDigestFromImageID(String imgID) {
   }
 }
 
-String getRecentlyDeployedPod(String pattern, String namespace) {
-  sh(
-    script: """
-      kubectl get -n ${namespace} po --sort-by=.status.startTime | grep ${pattern} | tac | awk '{print \$1}' | head -n1
-    """,
+void printPodStates(String pattern, String namespace) {
+  String runningPods = sh(
+    script: "kubectl get pods -n ${namespace} | grep ${pattern}",
     returnStdout: true,
-  ).trim()
+  )
+  String recentlyStartedPods = sh(
+    script: "kubectl get -n ${namespace} po --sort-by=.status.startTime | grep ${pattern}",
+    returnStdout: true,
+  )
+  echo(runningPods)
+  echo(recentlyStartedPods)
 }
-
