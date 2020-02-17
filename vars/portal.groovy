@@ -11,6 +11,18 @@ String get_portal_version_from_dynamodb(String app_name, String project_name) {
   ).trim()
 }
 
+String get_portal_version(String image_tag) {
+  if (image_tag.startsWith('release-')) {
+    return image_tag - 'release-'
+  }
+
+  if (image_tag.startsWith('master')) {
+    return image_tag
+  }
+
+  return '0.0.0'
+}
+
 String helm_get_values(String release_name, String namespace) {
   String helm_values_query = "${get_helm_bin()} get values ${release_name} --output json"
 
@@ -101,7 +113,7 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
   download_all_configs(project_name)
 
   def target_color = get_target_color(app_name, project_name)
-  def new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+  def new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
   def helm_dir = "helm/portal"
 
   package_chart(helm_dir, new_app_version)
@@ -132,7 +144,7 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
 
   def current_app_version = get_current_app_version(app_name, project_name)
 
-  def new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+  def new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
 
   def target_color = get_target_color(app_name, project_name)
 
@@ -205,7 +217,14 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, d
 
   swapped_color = get_live_color(app_name, project_name)
   target_color = get_target_color(app_name, project_name)
-  new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+
+  String namespace = "${project_name}-${env.PORTAL_ENV}"
+  String target_release_name = "${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV}"
+
+  String new_app_version = sh(
+    script: "${helm_get_values(target_release_name, namespace)} | jq -r '.global.appVersion'",
+    returnStdout: true
+  ).trim()
 
   sh """
     ${get_helm_bin()} upgrade \
@@ -245,7 +264,7 @@ def run_prod_mode_post_deployment_operations(app_name, project_name, domain) {
   is_worker = false
 
   current_app_version = get_current_app_version(app_name, project_name)
-  new_app_version = get_portal_version_from_dynamodb(app_name, project_name)
+  new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
   helm_dir = "helm/portal"
   target_color = get_target_color(app_name, project_name)
   if (!is_release_deployed(app_name, target_color, project_name)) {
