@@ -173,3 +173,23 @@ void printPodStates(String pattern, String namespace) {
   echo(runningPods)
   echo(recentlyStartedPods)
 }
+
+Boolean branchExists(String branchName, String repoAddr, String gitCredentialsId) {
+  withCredentials([
+    usernamePassword(credentialsId: gitCredentialsId, passwordVariable: 'gitPass', usernameVariable: 'gitUser')
+  ]) {
+    String cmd = "git ls-remote --heads https://${gitUser}:${gitPass}@${repoAddr} ${branchName} | wc -l"
+    String remoteCnt = sh(script: cmd, returnStdout: true).trim()
+    return remoteCnt != "0"
+  }
+}
+
+void createBranch(String branchName, String repoAddr, String gitCredentialsId) {
+  withCredentials([
+    usernamePassword(credentialsId: gitCredentialsId, passwordVariable: 'gitPass', usernameVariable: 'gitUser')
+  ]) {
+    String cmd = "git branch ${branchName} && git push https://${gitUser}:${gitPass}@${repoAddr} ${branchName}"
+    Integer status = sh(script: cmd, returnStatus: true)
+    if (status != 0) error("Couldn't create branch: ${branchName}")
+  }
+}

@@ -327,3 +327,23 @@ String get_auth_token(username, password, url) {
     returnStdout: true
   ).trim()
 }
+
+void clone(String portalRepo, String parentBranch, String gitCredentialsId) {
+  String gitOrgAddr = 'github.com/guardant'
+  String repoAddr = "${gitOrgAddr}/${portalRepo}"
+
+  String selectedBranch = 'master'
+  if (utils.branchExists(parentBranch, repoAddr, gitCredentialsId)) {
+    selectedBranch = parentBranch
+  }
+
+  dir (portalRepo) {
+    git(url: "https://${repoAddr}", credentialsId: gitCredentialsId, branch: selectedBranch)
+
+    if (selectedBranch == 'master' && parentBranch.startsWith('release-')) {
+      utils.createBranch(parentBranch, repoAddr, gitCredentialsId)
+      Integer status = sh(script: "git checkout ${parentBranch}", returnStatus: true)
+      if (status != 0) error("Couldn't checkout to ${parentBranch}")
+    }
+  }
+}
