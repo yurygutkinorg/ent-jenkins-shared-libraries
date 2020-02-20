@@ -79,9 +79,9 @@ Boolean verifySemVer(Map args) {
 
 Boolean checkIfEnzymeService(String serviceName) {
   List<String> serviceList = [
-    "auth", "billing", "clinical", "curation", "exchange",
-    "file", "finance", "ivd-reporting", "message", "misc",
-    "omni-reporting", "problem-case", "iuo-reporting",
+    "auth", "billing", "clinical", "clinical-study-report-generation",
+    "curation", "exchange", "file", "finance", "ivd-reporting",
+    "message", "misc", "omni-reporting", "problem-case", "iuo-reporting",
     "g361-reporting", "g360-ps-reporting", "g360-ldt-reporting"
   ]
   return serviceList.contains(serviceName)
