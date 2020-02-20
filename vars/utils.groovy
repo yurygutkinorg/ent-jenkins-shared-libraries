@@ -117,7 +117,12 @@ void verifyImageChecksum(Map args) {
 String getRecentlyDeployedPod(String pattern, String namespace) {
   sh(
     script: """
-      kubectl get -n ${namespace} po --sort-by=.status.startTime | grep ${pattern} | tac | awk '{print \$1}' | head -n1
+      kubectl get -n ${namespace} po --sort-by=.status.startTime | \
+        grep -v "Terminating" | \
+        grep ${pattern} | \
+        tac | \
+        awk '{print \$1}' | \
+        head -n1
     """,
     returnStdout: true,
   ).trim()
