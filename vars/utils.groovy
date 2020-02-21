@@ -193,8 +193,15 @@ void createBranch(String branchName, String repoAddr, String gitCredentialsId) {
   withCredentials([
     usernamePassword(credentialsId: gitCredentialsId, passwordVariable: 'gitPass', usernameVariable: 'gitUser')
   ]) {
+    removeLocalBranch(branchName)
     String cmd = "git branch -d ${branchName} && git branch ${branchName} && git push https://${gitUser}:${gitPass}@${repoAddr} ${branchName}"
     Integer status = sh(script: cmd, returnStatus: true)
     if (status != 0) error("Couldn't create branch: ${branchName}")
   }
+}
+
+void removeLocalBranch(String branchName) {
+    String cmd = "git branch -d ${branchName}"
+    Integer status = sh(script: cmd, returnStatus: true)
+    if (status != 0) echo("${branchName} doesn't exist yet")
 }
