@@ -190,11 +190,16 @@ Boolean branchExists(String branchName, String repoAddr, String gitCredentialsId
 }
 
 void createBranch(String branchName, String repoAddr, String gitCredentialsId) {
+  if (branchExists(branchName, repoAddr, gitCredentialsId)) {
+    echo("Branch ${branchName} already exists")
+    return
+  }
+
   withCredentials([
     usernamePassword(credentialsId: gitCredentialsId, passwordVariable: 'gitPass', usernameVariable: 'gitUser')
   ]) {
     removeLocalBranch(branchName)
-    String cmd = "git branch -d ${branchName} && git branch ${branchName} && git push https://${gitUser}:${gitPass}@${repoAddr} ${branchName}"
+    String cmd = "git branch ${branchName} && git push https://${gitUser}:${gitPass}@${repoAddr} ${branchName}"
     Integer status = sh(script: cmd, returnStatus: true)
     if (status != 0) error("Couldn't create branch: ${branchName}")
   }
