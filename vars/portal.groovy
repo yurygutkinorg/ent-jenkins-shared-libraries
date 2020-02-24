@@ -11,18 +11,6 @@ String get_portal_version_from_dynamodb(String app_name, String project_name) {
   ).trim()
 }
 
-String get_portal_version(String image_tag) {
-  if (image_tag.startsWith('release-')) {
-    return image_tag - 'release-'
-  }
-
-  if (image_tag.startsWith('master')) {
-    return image_tag
-  }
-
-  return '0.0.0'
-}
-
 String helm_get_values(String release_name, String namespace) {
   String helm_values_query = "${get_helm_bin()} get values ${release_name} --output json"
 
@@ -32,15 +20,6 @@ String helm_get_values(String release_name, String namespace) {
   }
 
   return helm_values_query
-}
-
-String get_portal_version_from_cluster(String app_name, String project_name) {
-  String release_name = "${project_name}-${app_name}-${env.PORTAL_ENV}-ingress"
-  String namespace = "${project_name}-${env.PORTAL_ENV}"
-  return sh(
-    script: "${helm_get_values(release_name, namespace)} | jq -r '.appVersion'",
-    returnStdout: true
-  ).trim()
 }
 
 Boolean is_release_deployed(String app_name, String color, String project_name) {
@@ -102,9 +81,35 @@ def package_chart(helm_dir, app_version) {
   sh "${get_helm_bin()} package --app-version=${app_version} ${helm_dir}"
 }
 
-def get_current_app_version(app_name, project_name) {
-  def current_app_version = get_portal_version_from_cluster(app_name, project_name)
-  return current_app_version
+String get_app_version_from_cluster(String app_name, String project_name, String color) {
+    String release_name = "${project_name}-${app_name}-${color}-${env.PORTAL_ENV}"
+    String namespace = "${project_name}-${env.PORTAL_ENV}"
+    sh(
+      script: "${helm_get_values(release_name, namespace)} | jq -r '.global.appVersion'",
+      returnStdout: true
+    ).trim()
+}
+
+String get_current_app_version(String app_name, String project_name) {
+  String live_color = get_live_color(app_name, project_name)
+  get_app_version_from_cluster(app_name, project_name, live_color)
+}
+
+String get_target_app_version(String app_name, String project_name) {
+  String target_color = get_target_color(app_name, project_name)
+  get_app_version_from_cluster(app_name, project_name, target_color)
+}
+
+String get_version_from_release_name(String image_tag) {
+  if (image_tag.startsWith('release-')) {
+    return image_tag - 'release-'
+  }
+
+  if (image_tag.startsWith('master')) {
+    return image_tag
+  }
+
+  '0.0.0'
 }
 
 def deploy_new_release(app_name, prod_mode, project_name, domain) {
@@ -113,7 +118,7 @@ def deploy_new_release(app_name, prod_mode, project_name, domain) {
   download_all_configs(project_name)
 
   def target_color = get_target_color(app_name, project_name)
-  def new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
+  def new_app_version = get_version_from_release_name(env.DOCKER_IMAGE_TAG)
   def helm_dir = "helm/portal"
 
   package_chart(helm_dir, new_app_version)
@@ -142,11 +147,10 @@ def deploy_portal(app_name, is_prod_mode=false, is_worker=false, project_name, d
     is_prod_mode = true
   }
 
+  def target_color = get_target_color(app_name, project_name)
   def current_app_version = get_current_app_version(app_name, project_name)
 
-  def new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
-
-  def target_color = get_target_color(app_name, project_name)
+  def new_app_version = get_version_from_release_name(env.DOCKER_IMAGE_TAG)
 
   deploy_new_release(app_name, is_prod_mode, project_name, domain)
 
@@ -219,13 +223,8 @@ def swap_dns(app_name, ingress_enabled=true, test_release=false, project_name, d
   target_color = get_target_color(app_name, project_name)
 
   String namespace = "${project_name}-${env.PORTAL_ENV}"
-  String target_release_name = "${project_name}-${app_name}-${target_color}-${env.PORTAL_ENV}"
 
-  String new_app_version = sh(
-    script: "${helm_get_values(target_release_name, namespace)} | jq -r '.global.appVersion'",
-    returnStdout: true
-  ).trim()
-
+  String new_app_version = get_target_app_version(app_name, project_name)
   sh """
     ${get_helm_bin()} upgrade \
       --wait \
@@ -263,10 +262,12 @@ def run_prod_mode_post_deployment_operations(app_name, project_name, domain) {
 
   is_worker = false
 
-  current_app_version = get_current_app_version(app_name, project_name)
-  new_app_version = get_portal_version(env.DOCKER_IMAGE_TAG)
+  String current_app_version = get_current_app_version(app_name, project_name)
+  String new_app_version = get_target_app_version(app_name, project_name)
+
   helm_dir = "helm/portal"
   target_color = get_target_color(app_name, project_name)
+
   if (!is_release_deployed(app_name, target_color, project_name)) {
     currentBuild.result = 'FAILED'
     error 'No hidden instances deployed'
