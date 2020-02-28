@@ -1,0 +1,19 @@
+<settings>
+    <servers>
+        <server>
+            <id>ghi-artifactory</id>
+            <username><![CDATA[${ARTIFACTORY_USERNAME}]]></username>
+            <password><![CDATA[${ARTIFACTORY_PASSWORD}]]></password>
+        </server>
+        <server>
+            <id>ghi-exchange</id>
+            <username><![CDATA[${ANYPOINT_USERNAME}]]></username>
+            <password><![CDATA[${ANYPOINT_PASSWORD}]]></password>
+        </server>
+        <server>
+            <id>MuleRepository</id>
+            <username><![CDATA[${MULE_REPOSITORY_USERNAME}]]></username>
+            <password><![CDATA[${MULE_REPOSITORY_PASSWORD}]]></password>
+        </server>
+    </servers>
+</settings>
