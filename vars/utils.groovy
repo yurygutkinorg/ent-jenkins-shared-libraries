@@ -1,3 +1,6 @@
+#!groovy
+import org.jenkinsci.plugins.workflow.support.steps.build.RunWrapper
+
 Boolean isEnabled(Boolean flag) {
   flag != false || flag != null
 }
@@ -210,3 +213,8 @@ void removeLocalBranch(String branchName) {
     Integer status = sh(script: cmd, returnStatus: true)
     if (status != 0) echo("${branchName} doesn't exist yet")
 }
+
+Boolean isDownstreamJob(RunWrapper build) {
+    build.getBuildCauses('hudson.model.Cause$UpstreamCause').size() > 0
+}
+
