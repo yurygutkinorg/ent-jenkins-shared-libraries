@@ -1,10 +1,13 @@
 def notify(Map args) {
   // Usage:
   // `slack.notify(repositoryName: 'gh-aws', status: 'Success', additionalText: 'Some msg', sendSlackNotification: true)`
-  if (!args.sendSlackNotification) { return }
+  if (!args.sendSlackNotification) return
 
   // https://jenkins.io/doc/pipeline/examples/#slacknotify
-  label = utils.constrainLabelToSpecifications("slack-${utils.generateSlaveLabel()}")
+  String label = utils.constrainLabelToSpecifications("slack-${utils.generateSlaveLabel()}")
+  String lastCommit = ""
+  String branchName = ""
+
   container('jnlp') {
     lastCommit = utils.getLastCommit()
     branchName = utils.getCurrentBranch()
@@ -15,23 +18,27 @@ def notify(Map args) {
       name: 'gh-tools',
       image: 'ghinfra/common-binaries:7',
       ttyEnabled: true,
-      command: 'cat'
+      command: 'cat',
+      resourceRequestCpu: '50m',
+      resourceLimitCpu: '100m',
+      resourceRequestMemory: '64Mi',
+      resourceLimitMemory: '128Mi'
     ),
   ]) {
     node(label) {
       container('gh-tools') {
-        barColor = (args.status == 'Success') ? '#36a64f' :'#f44242'
-        title = "Jenkins Build Status"
-        fallback = "Required plain-text summary of the attachment."
+        String barColor = (args.status == 'Success') ? '#36a64f' :'#f44242'
+        String title = "Jenkins Build Status"
+        String fallback = "Required plain-text summary of the attachment."
 
-        text = """
+        String text = """
 Repository: ${args.repositoryName}
 Branch: ${branchName}
 Last commit: ${lastCommit}
 ${args.additionalText}
 """
 
-        rawData = """
+        String rawData = """
 { "attachments": [ \
   { "fallback": "${fallback}", \
     "color": "${barColor}", \
@@ -42,16 +49,20 @@ ${args.additionalText}
 ]}
 """
 
-        data = rawData.replace("'", "")
+        String data = rawData.replace("'", "")
+
         withCredentials([string(
           credentialsId: 'slack_enterprise_ci_bot',
           variable: 'slack_enterprise_ci_bot')
         ]) {
-          sh """
-curl -X POST -H 'Content-type: application/json' --data '${data}' "${env.slack_enterprise_ci_bot}"
-          """
+          String cmd = "curl -X POST -H 'Content-type: application/json' --data '${data}' '${env.slack_enterprise_ci_bot}'"
+          Integer status = sh(script: cmd, returnStatus: true)
+          if (status != 0) {
+            error('Could not sent slack message.')
+          } else {
+            echo 'Slack message sent.'
+          }
         }
-        echo 'Slack message sent.'
       }
     }
   }

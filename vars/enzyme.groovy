@@ -205,6 +205,13 @@ spec:
     - "-c"
     - "apk update && apk add make && cat"
     tty: true
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "1536Mi"
+        cpu: "1500m"
     volumeMounts:
     - mountPath: /shared
       name: shared
@@ -215,6 +222,13 @@ spec:
     - "-c"
     - "apk update && apk add make && cat"
     tty: true
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
     volumeMounts:
     - mountPath: /var/run/docker.sock
       name: socket
@@ -225,6 +239,13 @@ spec:
     command:
     - cat
     tty: true
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
     volumeMounts:
     - mountPath: /shared
       name: shared
