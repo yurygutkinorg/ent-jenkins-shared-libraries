@@ -1,6 +1,6 @@
 // Temporary hack for helm migration to version 3
 String get_helm_bin() {
-  return (env.ENVIRONMENT in ['dev', 'sqa']) ? 'helm3' : 'helm'
+  return (env.ENVIRONMENT == 'prod') ? 'helm' : 'helm3'
 }
 
 String get_portal_version_from_dynamodb(String app_name, String project_name) {
