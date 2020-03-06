@@ -210,7 +210,7 @@ spec:
         memory: "512Mi"
         cpu: "100m"
       limits:
-        memory: "1536Mi"
+        memory: "3072Mi"
         cpu: "1500m"
     volumeMounts:
     - mountPath: /shared
