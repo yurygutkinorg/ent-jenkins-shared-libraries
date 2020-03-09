@@ -121,7 +121,7 @@ String getRecentlyDeployedPod(String pattern, String namespace) {
   sh(
     script: """
       kubectl get -n ${namespace} po --sort-by=.status.startTime | \
-        grep -v "Terminating" | \
+        grep -v -E "Terminating|Completed|Error" | \
         grep ${pattern} | \
         tac | \
         awk '{print \$1}' | \
