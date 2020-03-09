@@ -50,9 +50,8 @@ def call(String testSuite, String browserType, String email, String projectName)
 
                         script {
                             sh """
-                                pushd settings/internal
-                                cp "${propertyFile}" com.kms.katalon.execution.properties
-                                popd
+                                cp "${propertyFile}" settings/internal/com.kms.katalon.execution.properties
+                
                                 katalonc.sh \
                                 -apiKey="${KATALON_API_KEY}" \
                                 -projectPath="${projectPath}"           	 	
@@ -79,3 +78,4 @@ def call(String testSuite, String browserType, String email, String projectName)
         }
     }
 }
+
