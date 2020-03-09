@@ -31,7 +31,7 @@ def call(String testSuite, String browserType, String email, String projectName)
             ENVIRONMENT      = "${params.ENVIRONMENT}"
         }
 
-        def propertyFile = "${projectName}" + "_" + "${params.ENVIRONMENT}" + ".properties"
+        String propertyFile = "${projectName}" + "_" + "${params.ENVIRONMENT}" + ".properties"
 
         stages {
             stage('Run Test Suite') {
@@ -40,15 +40,11 @@ def call(String testSuite, String browserType, String email, String projectName)
                 }
                 steps {
                     container('katalon') {
-                        sh 'mkdir -p /tmp/katalon_execute/workspace/'
-                        sh 'mkdir -p /tmp/katalon_execute/project/Resources/'
+			sh 'mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}'
                         sh 'ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/'
-                        
-                        sh 'mkdir -p /tmp/katalon_execute/workspace/Results/download'
-                        sh 'mkdir -p /tmp/katalon_execute/project/Results/'
                         sh 'ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/'
-
-                        script {
+                        
+			script {
                             sh """
                                 cp "${propertyFile}" settings/internal/com.kms.katalon.execution.properties
                 
