@@ -42,9 +42,9 @@ def call(String testSuite, String browserType, String email, String projectName)
                     container('katalon') {
                         script {
                           sh """
-                            sh 'mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}'
-                            sh 'ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/'
-                            sh 'ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/'
+                            mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}
+                            ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
+                            ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/
                             cp settings/internal/${propertyFile} settings/internal/com.kms.katalon.execution.properties
                 
                             katalonc.sh \
@@ -65,8 +65,8 @@ def call(String testSuite, String browserType, String email, String projectName)
     }
     post {
         success {
-        echo 'Success'
-        deleteDir()
+            echo 'Success'
+            deleteDir()
         }
         failure {
             echo 'Failure'
