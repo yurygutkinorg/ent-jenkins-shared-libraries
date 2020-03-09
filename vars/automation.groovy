@@ -28,7 +28,7 @@ def call(String testSuite, String browserType, String email, String projectName)
             string(defaultValue: "${testSuite}", description: 'test suite', name: 'TestSuite')
         }
         environment {
-            ENVIRONMENT      = "${params.ENVIRONMENT}"
+            ENVIRONMENT = "${params.ENVIRONMENT}"
         }
 
         String propertyFile = "${projectName}" + "_" + "${params.ENVIRONMENT}" + ".properties"
@@ -36,27 +36,29 @@ def call(String testSuite, String browserType, String email, String projectName)
         stages {
             stage('Run Test Suite') {
                 environment {
-                    KATALON_API_KEY     = credentials("KATALON_API_KEY")
+                    KATALON_API_KEY = credentials("KATALON_API_KEY")
                 }
                 steps {
                     container('katalon') {
-			            sh 'mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}'
-                        sh 'ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/'
-                        sh 'ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/'
+                        sh """
+                            sh 'mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}'
+                            sh 'ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/'
+                            sh 'ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/'
+                        """
                         
 			script {
-                            sh """
-                                cp "${propertyFile}" settings/internal/com.kms.katalon.execution.properties
+                        sh """
+                            cp "settings/internal/${propertyFile}" settings/internal/com.kms.katalon.execution.properties
                 
-                                katalonc.sh \
-                                -apiKey="${KATALON_API_KEY}" \
-                                -projectPath="${projectPath}"           	 	
-                                -executionProfile="${ENVIRONMENT}" \
-                                -browserType="${browserType}" \
+                            katalonc.sh \
+                                -apiKey=${KATALON_API_KEY} \
+                                -projectPath=${projectPath} \          	 	
+                                -executionProfile=${ENVIRONMENT} \
+                                -browserType=${browserType} \
                                 -retry=0 \
                                 -statusDelay=15 \
-                                -testSuitePath="Test Suites/Portal/${params.TestSuite}" \
-                                -sendMail="${params.Email}"                
+                                -testSuitePath=Test Suites/Portal/${params.TestSuite} \
+                                -sendMail=${params.Email}                
                             """
                         } 
                     }
