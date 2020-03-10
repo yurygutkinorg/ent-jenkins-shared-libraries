@@ -1,6 +1,6 @@
 import jenkins.model.Jenkins
 
-def call(String testSuite, String browserType, String email, String projectName){
+def call(String testSuite, String browserType, String email, String projectName, String projectPath){
     pipeline {
         agent {
             kubernetes {
