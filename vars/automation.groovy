@@ -49,7 +49,7 @@ def call(String testSuite, String browserType, String email, String projectName,
                 
                             katalonc.sh \
                                 -apiKey=${KATALON_API_KEY} \
-                                -projectPath=${projectPath} \          	 	
+                                -projectPath=${projectPath} \	
                                 -executionProfile=${ENVIRONMENT} \
                                 -browserType=${browserType} \
                                 -retry=0 \
