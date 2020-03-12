@@ -5,21 +5,21 @@ def call(String testSuite, String browserType, String email, String projectName,
         agent {
             kubernetes {
             label "${env.BUILD_TAG.toLowerCase().substring(17)}"
-            defaultContainer 'jnlp'
+            defaultContainer 'katalon'
             yaml """
-                apiVersion: v1
-                kind: Pod
-                metadata:
+              apiVersion: v1
+              kind: Pod
+              metadata:
                 labels:
-                    name: dynamic-slave
-                spec:
+                  name: dynamic-slave
+              spec:
                 containers:
-                - name: katalon
+                  - name: katalon
                     image: katalonstudio/katalon
                     command:
-                    - cat
+                      - cat
                     tty: true
-                """
+            """
             }
         }
         parameters {
@@ -31,8 +31,6 @@ def call(String testSuite, String browserType, String email, String projectName,
             ENVIRONMENT = "${params.ENVIRONMENT}"
         }
 
-        String propertyFile = "${projectName}" + "_" + "${params.ENVIRONMENT}" + ".properties"
-
         stages {
             stage('Run Test Suite') {
                 environment {
@@ -42,35 +40,41 @@ def call(String testSuite, String browserType, String email, String projectName,
                     container('katalon') {
                         script {
                           sh """
-                            mkdir -p /tmp/katalon_execute/{workspace/Results/download,project/Resources/Results/download,project/Results/}
+                            mkdir -p /tmp/katalon_execute/workspace/Results/download
+                            mkdir -p /tmp/katalon_execute/project/Results/
                             ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
+
+                            mkdir -p /tmp/katalon_execute/project/Resources/
                             ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/
-                            cp settings/internal/${propertyFile} settings/internal/com.kms.katalon.execution.properties
+
+                            mkdir -p /tmp/katalon_execute/project/Data\\ Files/
+                            ln -s /tmp/katalon_execute/project/Data\\ Files/ /tmp/katalon_execute/workspace/
+
+                            cp settings/internal/${projectName}-${params.ENVIRONMENT}.properties settings/internal/com.kms.katalon.execution.properties
                 
                             katalonc.sh \
                                 -apiKey=${KATALON_API_KEY} \
-                                -projectPath=${projectPath} \	
                                 -executionProfile=${ENVIRONMENT} \
-                                -browserType=${browserType} \
+                                -browserType="${browserType}" \
                                 -retry=0 \
                                 -statusDelay=15 \
-                                -testSuitePath=Test Suites/Portal/${params.TestSuite} \
-                                -sendMail=${params.Email}                
+                                -testSuitePath="Test Suites/Portal/${params.TestSuite}" \
+                                -sendMail=${params.Email} \
+                                -projectPath=${projectPath}
                           """
                         } 
                     }
                 }
             }
         }
-    }
-    post {
-        success {
-            echo 'Success'
-            deleteDir()
-        }
-        failure {
-            echo 'Failure'
+        post {
+            success {
+                echo 'Success'
+                deleteDir()
+            }
+            failure {
+                echo 'Failure'
+            }
         }
     }
 }
-
