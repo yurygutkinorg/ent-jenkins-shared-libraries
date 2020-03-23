@@ -159,6 +159,7 @@ void waitForReadyCondition(String podName, String namespace) {
     returnStdout: true,
   )
   echo(result)
+  sh(script: 'sleep 3') // Just to be sure
 }
 
 String extractDigestFromImageID(String imgID) {
