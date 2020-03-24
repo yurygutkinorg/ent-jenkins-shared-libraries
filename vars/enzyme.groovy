@@ -145,11 +145,11 @@ EOF
         steps {
           echo "Service discovered"
           build(
-            job: "/deployments/enzyme",
+            job: "/deployments/argocd-update-image-tag",
             parameters: [
+              string(name: 'APP_NAME', value: env.ENZYME_PROJECT),
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
-              string(name: 'ENZYME_PROJECT', value: env.ENZYME_PROJECT),
-              string(name: 'RELEASE_VERSION', value: env.DOCKER_TAG)
+              string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
             ], quietPeriod: 2
           )
         }
