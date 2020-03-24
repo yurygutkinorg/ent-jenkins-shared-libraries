@@ -119,7 +119,8 @@ def call(String mule_project, String build_tag) {
             withCredentials([
                     string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
                     string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-                    string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
+                    string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD'),
+                    usernamePassword(credentialsId: 'mule_nexus_repository', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
@@ -129,6 +130,7 @@ def call(String mule_project, String build_tag) {
                       -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN \
                       -Dorg.slf4j.simpleLogger.showDateTime=true \
                       -Djava.awt.headless=true \
+                      -DskipTests \
                       deploy \
                       -DaltDeploymentRepository=ghi-artifactory::default::${ARTIFACTORY_URL} \
                       -Demule-tools.version=1.0-beta33
