@@ -85,7 +85,7 @@ Boolean checkIfEnzymeService(String serviceName) {
     "auth", "billing", "clinical", "clinical-study-report-generation",
     "curation", "exchange", "file", "finance", "ivd-reporting",
     "message", "misc", "omni-reporting", "problem-case", "iuo-reporting",
-    "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting"
+    "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting", "lims-data-service"
   ]
   return serviceList.contains(serviceName)
 }
