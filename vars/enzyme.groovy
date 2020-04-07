@@ -14,7 +14,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
-      DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT}"
+      DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT}-${env.BUILD_ID}"
       RELEASE_VERSION         = "${releaseVersion}"
       TARGET_ENVIRONMENT      = "dev"
       SHARED_DIR              = "/shared/${buildTag}/"
