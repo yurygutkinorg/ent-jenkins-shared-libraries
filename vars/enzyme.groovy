@@ -94,7 +94,7 @@ EOF
       stage('Publish java snapshots to artifactory') {
         when {
           allOf{
-            expression { utils.verifySemVer(sem_ver: env.RELEASE_VERSION) }
+            expression { utils.verifySemVer(env.RELEASE_VERSION) }
           }
         }
         steps {
@@ -110,12 +110,15 @@ EOF
         }
       }
 
-      stage('Publish docker image if release branch and if repo is a service') {
+      stage('Publish docker image under certain conditions') {
         when {
-          allOf{
-            expression { utils.verifySemVer(sem_ver: env.RELEASE_VERSION) }
-            expression { branchName.contains(env.ENZYME_PROJECT) }
-            expression { utils.checkIfEnzymeService(env.ENZYME_PROJECT) }
+          anyOf {
+            expression { branchName.startsWith('candidate-') } // used for testing
+            allOf {
+              expression { utils.verifySemVer(env.RELEASE_VERSION) }
+              expression { branchName.contains(env.ENZYME_PROJECT) }
+              expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
+            }
           }
         }
         steps {
@@ -137,9 +140,9 @@ EOF
       stage('Trigger enzyme deployment job if release branch and if repo is a service') {
         when {
           allOf{
-            expression { utils.verifySemVer(sem_ver: env.RELEASE_VERSION) }
+            expression { utils.verifySemVer(env.RELEASE_VERSION) }
             expression { branchName.contains(env.ENZYME_PROJECT) }
-            expression { utils.checkIfEnzymeService(env.ENZYME_PROJECT) }
+            expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
           }
         }
         steps {
@@ -181,8 +184,27 @@ EOF
 }
 
 String getReleaseVersion(String enzymeProject, String branchName) {
+  if (branchName.startsWith('candidate-')) {
+    return '99.99.99' // used for testing
+  }
   List<String> splitBranch = branchName.split("${enzymeProject}-")
   (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
+}
+
+Boolean checkIfEnzymeService(String serviceName) {
+  [
+    "auth",
+    "billing",
+    "clinical", "clinical-study-report-generation", "curation",
+    "exchange",
+    "file", "finance",
+    "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting",
+    "ivd-reporting", "iuo-reporting",
+    "lims-data-service",
+    "message", "misc",
+    "omni-reporting",
+    "problem-case"
+  ].contains(serviceName)
 }
 
 String getManifest() {

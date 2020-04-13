@@ -79,20 +79,9 @@ String constrainLabelToSpecifications(String label) {
   return label
 }
 
-Boolean verifySemVer(Map args) {
-  if (!args.sem_ver) { return false }
+Boolean verifySemVer(String pattern) {
   // regex checks for XX.XX.XX, where X is a decimal
-  return args.sem_ver.matches(/^([1-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])$/)
-}
-
-Boolean checkIfEnzymeService(String serviceName) {
-  List<String> serviceList = [
-    "auth", "billing", "clinical", "clinical-study-report-generation",
-    "curation", "exchange", "file", "finance", "ivd-reporting",
-    "message", "misc", "omni-reporting", "problem-case", "iuo-reporting",
-    "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting", "lims-data-service"
-  ]
-  return serviceList.contains(serviceName)
+  pattern.matches(/^([1-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])\.([0-9]|[1-9][0-9])$/)
 }
 
 void verifyImageChecksum(Map args) {
