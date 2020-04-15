@@ -110,11 +110,11 @@ EOF
         }
       }
 
-      stage('Publish docker image under certain conditions') {
+      stage('Publish docker image') {
         when {
           anyOf {
             expression { branchName.startsWith('candidate-') } // used for testing
-            allOf {
+            allOf { // if release branch and if repo is a service
               expression { utils.verifySemVer(env.RELEASE_VERSION) }
               expression { branchName.contains(env.ENZYME_PROJECT) }
               expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
@@ -137,9 +137,9 @@ EOF
         }
       }
 
-      stage('Trigger enzyme deployment job if release branch and if repo is a service') {
+      stage('Trigger enzyme deployment job') {
         when {
-          allOf{
+          allOf{ // if release branch and if repo is a service
             expression { utils.verifySemVer(env.RELEASE_VERSION) }
             expression { branchName.contains(env.ENZYME_PROJECT) }
             expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
@@ -183,15 +183,7 @@ EOF
   }
 }
 
-String getReleaseVersion(String enzymeProject, String branchName) {
-  if (branchName.startsWith('candidate-')) {
-    return '99.99.99' // used for testing
-  }
-  List<String> splitBranch = branchName.split("${enzymeProject}-")
-  (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
-}
-
-Boolean checkIfEnzymeService(String serviceName) {
+List<String> getEnzymeAppNamesList() {
   [
     "auth",
     "billing",
@@ -203,8 +195,21 @@ Boolean checkIfEnzymeService(String serviceName) {
     "lims-data-service",
     "message", "misc",
     "omni-reporting",
+    "omni-ldt-reporting",
     "problem-case"
-  ].contains(serviceName)
+  ]
+}
+
+String getReleaseVersion(String enzymeProject, String branchName) {
+  if (branchName.startsWith('candidate-')) {
+    return '99.99.99' // used for testing
+  }
+  List<String> splitBranch = branchName.split("${enzymeProject}-")
+  (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
+}
+
+Boolean checkIfEnzymeService(String serviceName) {
+  getEnzymeAppNamesList().contains(serviceName)
 }
 
 String getManifest() {
