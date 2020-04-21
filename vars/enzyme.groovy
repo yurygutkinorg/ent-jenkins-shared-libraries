@@ -113,10 +113,13 @@ EOF
       stage('Publish docker image') {
         when {
           anyOf {
-            expression { branchName.startsWith('candidate-') } // used for testing
             allOf { // if release branch and if repo is a service
               expression { utils.verifySemVer(env.RELEASE_VERSION) }
               expression { branchName.contains(env.ENZYME_PROJECT) }
+              expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
+            }
+            allOf { // used for testing
+              expression { branchName.startsWith('candidate-') }
               expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
             }
           }
