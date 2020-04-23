@@ -58,7 +58,7 @@ def call(String testSuite, String browserType, String email, String projectName,
                                 -browserType="${browserType}" \
                                 -retry=0 \
                                 -statusDelay=15 \
-                                -testSuitePath="Test Suites/Portal/${params.TestSuite}" \
+                                -testSuitePath="Test Suites/${params.TestSuite}" \
                                 -sendMail=${params.Email} \
                                 -projectPath=${projectPath}
                           """
