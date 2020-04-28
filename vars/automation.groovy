@@ -15,7 +15,7 @@ def call(String testSuite, String browserType, String email, String projectName,
               spec:
                 containers:
                   - name: katalon
-                    image: katalonstudio/katalon
+                    image: katalonstudio/katalon:7.4.0
                     command:
                       - cat
                     tty: true
@@ -42,10 +42,10 @@ def call(String testSuite, String browserType, String email, String projectName,
                           sh """
                             mkdir -p /tmp/katalon_execute/workspace/Results/download
                             mkdir -p /tmp/katalon_execute/project/Results/
-                            ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
+                            ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/
 
                             mkdir -p /tmp/katalon_execute/project/Resources/
-                            ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/
+                            ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
 
                             mkdir -p /tmp/katalon_execute/project/Data\\ Files/
                             ln -s /tmp/katalon_execute/project/Data\\ Files/ /tmp/katalon_execute/workspace/
