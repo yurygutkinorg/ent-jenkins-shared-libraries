@@ -22,6 +22,20 @@ def call(String enzymeProject, String branchName, String buildTag) {
     }
 
     stages {
+      stage('Set build name') {
+        steps {
+          script {
+            currentBuild.displayName = "${env.RELEASE_VERSION}-${env.BUILD_NUMBER}"
+            if (
+              shouldTriggerDeploy(env.ENZYME_PROJECT, env.BRANCH_NAME, env.RELEASE_VERSION) ||
+              shouldBuildCandidate(env.ENZYME_PROJECT, env.BRANCH_NAME)
+            ) {
+              currentBuild.description = "Docker tag: ${env.DOCKER_TAG}"
+            }
+          }
+        }
+      }
+
       stage('Create shared dir') {
         steps {
           sh "mkdir -p ${env.SHARED_DIR}"
@@ -69,10 +83,10 @@ EOF
         steps {
           withSonarQubeEnv('sonar') {
             withCredentials([
-            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-          ]) {
+              string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
+              string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
+              string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
+            ]) {
               container('gradle') {
                 echo 'Start gradle build:'
                 sh 'make build'
@@ -108,15 +122,8 @@ EOF
       stage('Publish docker image') {
         when {
           anyOf {
-            allOf { // if release branch and if repo is a service
-              expression { utils.verifySemVer(env.RELEASE_VERSION) }
-              expression { branchName.contains(env.ENZYME_PROJECT) }
-              expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
-            }
-            allOf { // used for testing
-              expression { branchName.startsWith('candidate-') }
-              expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
-            }
+            expression { shouldTriggerDeploy(env.ENZYME_PROJECT, branchName, env.RELEASE_VERSION) }
+            expression { shouldBuildCandidate(env.ENZYME_PROJECT, branchName) } // used for testing
           }
         }
         steps {
@@ -137,11 +144,7 @@ EOF
 
       stage('Trigger enzyme deployment job') {
         when {
-          allOf{ // if release branch and if repo is a service
-            expression { utils.verifySemVer(env.RELEASE_VERSION) }
-            expression { branchName.contains(env.ENZYME_PROJECT) }
-            expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
-          }
+          expression { shouldTriggerDeploy(env.ENZYME_PROJECT, branchName, env.RELEASE_VERSION) }
         }
         steps {
           echo "Service discovered"
@@ -179,6 +182,14 @@ EOF
       }
     }
   }
+}
+
+Boolean shouldBuildCandidate(String enzymeProject, String branchName) {
+  branchName.startsWith('candidate-') && checkIfEnzymeService(enzymeProject)
+}
+
+Boolean shouldTriggerDeploy(String enzymeProject, String branchName, String releaseVersion) {
+  utils.verifySemVer(releaseVersion) && branchName.contains(enzymeProject) && checkIfEnzymeService(enzymeProject)
 }
 
 List<String> getEnzymeAppNamesList() {
