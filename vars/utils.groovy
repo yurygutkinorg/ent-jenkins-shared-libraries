@@ -52,6 +52,10 @@ String getCommitID() {
   _wrap_git_command("git rev-parse HEAD | tr -d '\n'")
 }
 
+String getCommitShaAndMessage() {
+  _wrap_git_command("git log --oneline | head -1")
+}
+
 String generateSlaveLabel() {
   // if command is used in context of Multibranch Pipeline read value from ENV
   if (env.BUILD_TAG) { return constrainLabelToSpecifications("${env.BUILD_TAG}") }
