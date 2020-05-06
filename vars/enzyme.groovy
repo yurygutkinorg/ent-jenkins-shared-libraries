@@ -140,6 +140,12 @@ EOF
             }
           }
         }
+        post {
+          success {
+            sh "echo '${env.DOCKER_TAG}' > docker_image_tag.txt"
+            archiveArtifacts artifacts: 'docker_image_tag.txt', fingerprint: true
+          }
+        }
       }
 
       stage('Trigger enzyme deployment job') {
