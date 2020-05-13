@@ -8,6 +8,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
       kubernetes {
         label "${shortBuildTag}"
         defaultContainer 'common-binaries'
+        workspaceVolume dynamicPVC(requestsSize: '10Gi')
         yaml getManifest()
       }
     }
@@ -241,6 +242,7 @@ spec:
   - name: gradle
     securityContext:
       runAsUser: 0
+      fsGroup: 1000
     image: gradle:3.5-alpine
     command:
     - "sh"
