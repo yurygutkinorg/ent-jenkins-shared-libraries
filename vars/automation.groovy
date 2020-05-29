@@ -2,6 +2,10 @@ import jenkins.model.Jenkins
 
 def call(String testSuite, String browserType, String email, String projectName, String projectPath){
     pipeline {
+        options { 
+            buildDiscarder(logRotator(daysToKeepStr: '15'))
+        }
+        
         agent {
             kubernetes {
             label "${env.BUILD_TAG.toLowerCase().substring(17)}"
