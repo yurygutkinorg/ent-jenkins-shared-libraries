@@ -43,7 +43,9 @@ def call(String testSuite, String browserType, String email, String projectName,
                 steps {
                     container('katalon') {
                         script {
-                          sh """
+
+                            ln -s /root/Downloads/ ${projectPath}/Results/download
+
                             mkdir -p /tmp/katalon_execute/workspace/Results/download
                             mkdir -p /tmp/katalon_execute/project/Results/
                             ln -s /tmp/katalon_execute/workspace/Results/download /tmp/katalon_execute/project/Results/
@@ -52,7 +54,7 @@ def call(String testSuite, String browserType, String email, String projectName,
                             ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
 
                             mkdir -p /tmp/katalon_execute/project/Data\\ Files/
-                            ln -s /tmp/katalon_execute/project/Data\\ Files/ /tmp/katalon_execute/workspace/
+
 
                             cp settings/internal/${projectName}-${params.ENVIRONMENT}.properties settings/internal/com.kms.katalon.execution.properties
                 
@@ -60,7 +62,7 @@ def call(String testSuite, String browserType, String email, String projectName,
                                 -apiKey=${KATALON_API_KEY} \
                                 -executionProfile=${ENVIRONMENT} \
                                 -browserType="${browserType}" \
-                                -retry=0 \
+                                -retry=1 \
                                 -statusDelay=15 \
                                 -testSuitePath="Test Suites/${params.TestSuite}" \
                                 -sendMail=${params.Email} \
