@@ -49,7 +49,7 @@ def call(String mule_project, String build_tag) {
                   - mountPath: /shared
                     name: shared
               - name: common-binaries
-                image: ghinfra/common-binaries:2
+                image: ghi-ghinfra.jfrog.io/common-binaries:38f0265a
                 command:
                 - cat
                 tty: true
