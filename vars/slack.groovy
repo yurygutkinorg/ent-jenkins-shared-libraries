@@ -16,7 +16,7 @@ def notify(Map args) {
   podTemplate(label: label, containers: [
     containerTemplate(
       name: 'gh-tools',
-      image: 'ghinfra/common-binaries:7',
+      image: 'ghi-ghinfra.jfrog.io/common-binaries:38f0265a',
       ttyEnabled: true,
       command: 'cat',
       resourceRequestCpu: '50m',
