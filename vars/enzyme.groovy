@@ -15,7 +15,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
-      DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT}-${env.BUILD_ID}"
+      DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       RELEASE_VERSION         = "${releaseVersion}"
       TARGET_ENVIRONMENT      = "dev"
       SHARED_DIR              = "/shared/${buildTag}/"
@@ -26,7 +26,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
       stage('Set build name') {
         steps {
           script {
-            currentBuild.displayName = "${env.RELEASE_VERSION}-${env.BUILD_NUMBER}"
+            currentBuild.displayName = "${env.RELEASE_VERSION}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
             if (
               shouldTriggerDeploy(env.ENZYME_PROJECT, env.BRANCH_NAME, env.RELEASE_VERSION) ||
               shouldBuildCandidate(env.ENZYME_PROJECT, env.BRANCH_NAME)
@@ -53,6 +53,9 @@ def call(String enzymeProject, String branchName, String buildTag) {
             )
             echo 'Cloning Makefile to job workspace:'
             sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
+            echo 'Cloning Docker scripts to job workspace'
+            sh "mkdir -p ${env.WORKSPACE}/deployment/docker"
+            sh "cp -rf ./docker/enzyme-base/* ${env.WORKSPACE}/deployment/docker/"
             echo 'Cleanup gh-aws project:'
             deleteDir()
           }
@@ -73,7 +76,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
            cat <<EOF >> ${env.PROPERTIES_FILE_PATH}
 
 # BUILD METADATA
-${env.ENZYME_PROJECT}.build=${env.RELEASE_VERSION}.${env.BUILD_ID}-${env.GIT_COMMIT.take(7)}
+${env.ENZYME_PROJECT}.build=${env.RELEASE_VERSION}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}
 
 EOF
           """
@@ -114,7 +117,8 @@ EOF
             string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
           ]) {
             container('gradle') {
-              sh 'make publish'
+              sh "make publish"
+              sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
             }
           }
         }
@@ -279,7 +283,7 @@ spec:
     - mountPath: /shared
       name: shared
   - name: common-binaries
-    image: ghi-ghinfra.jfrog.io/common-binaries:7e9c0db5
+    image: ghi-ghinfra.jfrog.io/common-binaries:057fc8f9
     command:
     - cat
     tty: true
