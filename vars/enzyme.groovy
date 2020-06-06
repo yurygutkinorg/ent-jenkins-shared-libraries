@@ -53,9 +53,6 @@ def call(String enzymeProject, String branchName, String buildTag) {
             )
             echo 'Cloning Makefile to job workspace:'
             sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
-            echo 'Cloning Docker scripts to job workspace'
-            sh "mkdir -p ${env.WORKSPACE}/deployment/docker"
-            sh "cp -rf ./docker/enzyme-base/* ${env.WORKSPACE}/deployment/docker/"
             echo 'Cleanup gh-aws project:'
             deleteDir()
           }
