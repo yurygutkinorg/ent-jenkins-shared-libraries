@@ -19,7 +19,7 @@ def call(String testSuite, String browserType, String email, String projectName,
               spec:
                 containers:
                   - name: katalon
-                    image: katalonstudio/katalon:7.4.0
+                    image: katalonstudio/katalon:7.5.5
                     command:
                       - cat
                     tty: true
@@ -28,11 +28,12 @@ def call(String testSuite, String browserType, String email, String projectName,
         }
         parameters {
             string(defaultValue: 'sqa', description: 'environment name', name: 'ENVIRONMENT')
-            string(defaultValue: "${email}", description: 'email', name: 'Email')
+            string(defaultValue: "DL-platform-tools-all@guardanthealth.com", description: 'email', name: 'EMAIL')
             string(defaultValue: "${testSuite}", description: 'test suite', name: 'TestSuite')
         }
         environment {
             ENVIRONMENT = "${params.ENVIRONMENT}"
+            EMAIL = "${params.EMAIL}"
         }
 
         stages {
@@ -43,33 +44,40 @@ def call(String testSuite, String browserType, String email, String projectName,
                 steps {
                     container('katalon') {
                         script {
+
+                            if ("${browserType}" == 'Chrome'){
+                                sh """
+
+                                mkdir -p /tmp/katalon_execute/workspace/Results/download
+                                mkdir -p /tmp/katalon_execute/project/Results/
+
+                                mkdir -p /tmp/katalon_execute/project/Resources/
+                                ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
+
+                                mkdir -p /tmp/katalon_execute/project/Data\\ Files/
+                                ln -s /tmp/katalon_execute/project/Data\\ Files/ /tmp/katalon_execute/workspace/
+
+                                rm -rf /home/jenkins/agent/workspace/test-automation-jobs/portal-web-automation-test-suite/Results/download
+
+                                ln -s /root/Downloads /home/jenkins/agent/workspace/test-automation-jobs/portal-web-automation-test-suite/Results/download
+
+                                """
+                            } 
+
                             sh """
-
-                            
-
-                            mkdir -p /tmp/katalon_execute/workspace/Results/download
-                            mkdir -p /tmp/katalon_execute/project/Results/
-                            ln -s /root/Downloads/ /tmp/katalon_execute/project/Results/
-
-                            mkdir -p /tmp/katalon_execute/project/Resources/
-                            ln -s /tmp/katalon_execute/project/Resources/ /tmp/katalon_execute/workspace/
-
-                            mkdir -p /tmp/katalon_execute/project/Data\\ Files/
-                            ln -s /tmp/katalon_execute/project/Data\\ Files/ /tmp/katalon_execute/workspace/
-
-                            cp settings/internal/${projectName}-${params.ENVIRONMENT}.properties settings/internal/com.kms.katalon.execution.properties
-                
-                            katalonc.sh \
-                                -apiKey=${KATALON_API_KEY} \
-                                -executionProfile=${ENVIRONMENT} \
-                                -browserType="${browserType}" \
-                                -retry=1 \
-                                -statusDelay=15 \
-                                -testSuitePath="Test Suites/${params.TestSuite}" \
-                                -sendMail=${params.Email} \
-                                -projectPath=${projectPath}
-                          """
-                        } 
+                                cp settings/internal/${projectName}-${params.ENVIRONMENT}.properties settings/internal/com.kms.katalon.execution.properties
+                    
+                                katalonc.sh \
+                                    -apiKey=${KATALON_API_KEY} \
+                                    -executionProfile=${ENVIRONMENT} \
+                                    -browserType="${browserType}" \
+                                    -retry=0 \
+                                    -statusDelay=15 \
+                                    -testSuitePath="Test Suites/${params.TestSuite}" \
+                                    -sendMail=${EMAIL} \
+                                    -projectPath=${projectPath}
+                            """
+                        }
                     }
                 }
             }
@@ -77,10 +85,11 @@ def call(String testSuite, String browserType, String email, String projectName,
         post {
             success {
                 echo 'Success'
-                deleteDir()
+                cleanWs()
             }
             failure {
                 echo 'Failure'
+                cleanWs()
             }
         }
     }
