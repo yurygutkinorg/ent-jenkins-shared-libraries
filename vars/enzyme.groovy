@@ -69,9 +69,10 @@ def call(String enzymeProject, String branchName, String buildTag) {
               error("config.properties does not exist under /src/resources/config.")
             }
 
-            PROPERTIES_FILE_PATH.each() {
+            for (int i = 0; i < PROPERTIES_FILE_PATH.size(); i++) {
+            // PROPERTIES_FILE_PATH.each() {
               sh """
-                cat <<EOF >> ${it}
+                cat <<EOF >> ${env.PROPERTIES_FILE_PATH[i]}
 
 # BUILD METADATA
 ${env.ENZYME_PROJECT}.build=${env.RELEASE_VERSION}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}
