@@ -72,6 +72,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
             for (int i = 0; i < PROPERTIES_FILE_PATH.size(); i++) {
             // PROPERTIES_FILE_PATH.each() {
               sh """
+                echo "${env.PROPERTIES_FILE_PATH[i]}"
                 cat <<EOF >> ${env.PROPERTIES_FILE_PATH[i]}
 
 # BUILD METADATA
