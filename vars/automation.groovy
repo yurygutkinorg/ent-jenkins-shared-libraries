@@ -28,7 +28,7 @@ def call(String testSuite, String browserType, String email, String projectName,
         }
         parameters {
             string(defaultValue: 'sqa', description: 'environment name', name: 'ENVIRONMENT')
-            string(defaultValue: "DL-platform-tools-all@guardanthealth.com", description: 'email', name: 'EMAIL')
+            string(defaultValue: "${email}", description: 'email', name: 'EMAIL')
             string(defaultValue: "${testSuite}", description: 'test suite', name: 'TestSuite')
         }
         environment {
