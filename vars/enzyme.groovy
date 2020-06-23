@@ -69,6 +69,8 @@ def call(String enzymeProject, String branchName, String buildTag) {
               error("config.properties does not exist under /src/resources/config.")
             }
 
+            echo "${env.PROPERTIES_FILE_PATH}"
+
             for (int i = 0; i < PROPERTIES_FILE_PATH.size(); i++) {
             // PROPERTIES_FILE_PATH.each() {
               sh """
