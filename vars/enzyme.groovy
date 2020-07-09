@@ -213,6 +213,7 @@ List<String> getEnzymeAppNamesList() {
     "g360-reporting", "g360-ps-reporting", "g360-ldt-reporting",
     "ivd-reporting", "iuo-reporting",
     "lims-data-service",
+    "lims-api",
     "message", "misc",
     "omni-reporting",
     "omni-ldt-reporting",
