@@ -50,8 +50,7 @@ Map Post(def url, def body){
 }
 
 public String getDisplayName(String response){
-    JsonSlurper slurper = new JsonSlurper()
-    Map res = slurper.parseText(response)
+    Map res = toJson(response)
     return res.get('displayName')
 }
 
