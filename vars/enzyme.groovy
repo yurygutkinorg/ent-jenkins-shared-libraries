@@ -83,7 +83,24 @@ EOF
         }
       }
 
-      stage('Build gradle, copy gradle binaries to shared directory, run unit test/static code analysis') {
+      stage('Build, test and copy gradle binaries to shared directory') {
+        steps {
+          withCredentials([
+            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
+            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
+            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
+          ]) {
+            container('gradle') {
+              echo 'Start gradle build:'
+              sh 'make build'
+              echo 'Cloning gradle binaries to shared directory'
+              sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
+            }
+          }
+        }
+      }
+
+      stage('Static code analysis') {
         steps {
           withSonarQubeEnv('sonar') {
             withCredentials([
@@ -92,12 +109,8 @@ EOF
               string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
             ]) {
               container('gradle') {
-                echo 'Start gradle build:'
-                sh 'make build'
-                echo 'Cloning gradle binaries to shared directory'
-                sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
                 echo 'Start static code analysis'
-                sh 'make static-code-analysis'
+                sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
               }
             }
           }
@@ -244,6 +257,11 @@ spec:
     runAsUser: 0
   containers:
   - name: gradle
+    env:
+    - name: _JAVA_OPTIONS
+      value: -Xms512m -Xmx4096m
+    - name: GRADLE_OPTS
+      value: -Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError"
     securityContext:
       runAsUser: 0
       fsGroup: 1000
@@ -255,11 +273,11 @@ spec:
     tty: true
     resources:
       requests:
-        memory: "512Mi"
+        memory: "1024Mi"
         cpu: "100m"
       limits:
-        memory: "3072Mi"
-        cpu: "1500m"
+        memory: "8192Mi"
+        cpu: "2"
     volumeMounts:
     - mountPath: /shared
       name: shared
