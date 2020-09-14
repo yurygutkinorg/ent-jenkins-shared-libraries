@@ -229,7 +229,8 @@ List<String> getEnzymeAppNamesList() {
     "message", "misc",
     "omni-reporting",
     "omni-ldt-reporting",
-    "problem-case"
+    "problem-case",
+    "lunar1-ldt-reporting"
   ]
 }
 
