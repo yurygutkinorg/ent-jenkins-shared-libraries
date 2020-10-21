@@ -231,7 +231,8 @@ List<String> getEnzymeAppNamesList() {
     "omni-ldt-reporting",
     "problem-case",
     "lunar1-ldt-reporting",
-    "tissue-reporting"
+    "tissue-reporting",
+    "pdl1-reporting"
   ]
 }
 
