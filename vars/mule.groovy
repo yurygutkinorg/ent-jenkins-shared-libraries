@@ -119,7 +119,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_SUFFIX = "-${env.RELEASE_NAME}"
+            RELEASE_SUFFIX = "-${env.RELEASE_SUFFIX}"
           }
         }
       }
