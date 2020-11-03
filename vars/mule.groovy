@@ -40,14 +40,6 @@ def call(String mule_project, String build_tag) {
                   name: socket
                 - mountPath: /shared
                   name: shared
-              - name: awscli
-                image: ghinfra/awscli:2
-                command:
-                - cat
-                tty: true
-                volumeMounts:
-                  - mountPath: /shared
-                    name: shared
               - name: common-binaries
                 image: ghi-ghinfra.jfrog.io/common-binaries:38f0265a
                 command:
@@ -67,15 +59,34 @@ def call(String mule_project, String build_tag) {
       }
     }
 
-    environment {
-      MULE_PROJECT          = "${mule_project}"
-      REPO_NAME               = "${mule_project}"
-      SHARED_DIR              = "/shared/${build_tag}/"
-      GIT_COMMIT              = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION = true
-      TARGET_ENVIRONMENT      = "dev"
-      RELEASE_NAME            = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
+    parameters {
+      choice(
+        name: "TARGET_ENVIRONMENT",
+        description: "Destination environment",
+        choices: ['dev', 'sqa', 'prod']
+      )
+      booleanParam(
+        name: 'SHOULD_DEPLOY',
+        description: 'Deploy artifact to Anypoint when set to true',
+        defaultValue: false
+      )
     }
+
+    environment {
+      MULE_PROJECT                = "${mule_project}"
+      REPO_NAME                   = "${mule_project}"
+      SHARED_DIR                  = "/shared/${build_tag}/"
+      GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+      SEND_SLACK_NOTIFICATION     = true
+      TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
+      RELEASE_SUFFIX              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
+      SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
+      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(params.TARGET_ENVIRONMENT)
+      ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(params.TARGET_ENVIRONMENT)
+      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(params.TARGET_ENVIRONMENT)
+    }
+
+
 
     stages {
       stage('Create shared dir') {
@@ -96,7 +107,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_NAME = env.BRANCH_NAME.split("release-")[1].trim()
+            RELEASE_SUFFIX = env.BRANCH_NAME.split("release-")[1].trim()
           }
         }
       }
@@ -108,32 +119,78 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            // Maven requires semver as a version. Commit SHA doesn't work here
-            RELEASE_NAME = "1.0.0-${env.RELEASE_NAME}" // e.g. 1.0.0-master-b8cde1
+            RELEASE_SUFFIX = "-${env.RELEASE_NAME}"
           }
         }
       }
-      stage('Build application and deploy') {
+      stage('Clean') {
         steps {
           container('maven') {
             withCredentials([
-                    string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-                    string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-                    string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD'),
-                    usernamePassword(credentialsId: 'mule_nexus_repository', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD')
+              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
             ]) {
-              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+              withMaven(mavenSettingsFilePath: 'settings.xml') {
+                sh """
+                  mvn -B clean
+                """
+              }
+            }
+          }
+        }
+      }
+      stage('Run tests') {
+        steps {
+          container('maven') {
+            withCredentials([
+              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
+            ]) {
+              withMaven(mavenSettingsFilePath: 'settings.xml') {
+                sh """
+                  mvn -B test
+                """
+              }
+            }
+          }
+        }
+      }
+      stage('Build and upload to Artifactory') {
+        steps {
+          container('maven') {
+            withCredentials([
+              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+              usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
+            ]) {
+              withEnv(["RELEASE_SUFFIX=${RELEASE_SUFFIX}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
-                    mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B \
-                      -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN \
-                      -Dorg.slf4j.simpleLogger.showDateTime=true \
-                      -Djava.awt.headless=true \
-                      -DskipTests \
-                      deploy \
-                      -DaltDeploymentRepository=ghi-artifactory::default::${ARTIFACTORY_URL} \
-                      -Demule-tools.version=1.0-beta33
+                    mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
+                  """
+                }
+              }
+            }
+          }
+        }
+      }
+      stage('Publish to Anypoint') {
+        when {
+          expression { params.SHOULD_DEPLOY == true }
+        }
+        steps {
+          container('maven') {
+            withCredentials([
+              usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
+              usernamePassword(credentialsId: "${env.ANYPOINT_CLIENT_SECRET_NAME}", usernameVariable: 'ANYPOINT_CLIENT_ID', passwordVariable: 'ANYPOINT_CLIENT_SECRET'),
+              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
+              string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
+              string(credentialsId: "${env.SPLUNK_TOKEN_SECRET_NAME}", variable: 'SPLUNK_TOKEN')
+            ]) {
+              withEnv(["RELEASE_SUFFIX=${RELEASE_SUFFIX}"]) {
+                withMaven(mavenSettingsFilePath: 'settings.xml') {
+                  sh """
+                     mvn -B dependency:copy -P${env.TARGET_ENVIRONMENT}
+                     mvn -B mule:deploy -P${env.TARGET_ENVIRONMENT}
                   """
                 }
               }
@@ -165,4 +222,34 @@ def call(String mule_project, String build_tag) {
       }
     }
   }
+}
+
+String getAnypointClientSecretName(String publishEnv) {
+  switch (publishEnv) {
+    case 'sqa':
+      return 'MULESOFT_ANYPOINT_CLIENT_BUS_SQA'
+    case 'prod':
+      return 'MULESOFT_ANYPOINT_CLIENT_BUS_PROD'
+    default:
+      return 'MULESOFT_ANYPOINT_CLIENT_BUS_DEV'
+  }
+}
+
+String getAnypointKeySecretName(String publishEnv) {
+  switch (publishEnv) {
+    case 'sqa':
+      return 'MULESOFT_ANYPOINT_KEY_BUS_SQA'
+    case 'prod':
+      return 'MULESOFT_ANYPOINT_KEY_BUS_PROD'
+    default:
+      return 'MULESOFT_ANYPOINT_KEY_BUS_DEV'
+  }
+}
+
+String getSplunkTokenSecretName(String publishEnv) {
+  if (publishEnv == 'prod') {
+    return 'MULESOFT_SPLUNK_TOKEN_BUS_PROD'
+  }
+
+  return 'MULESOFT_SPLUNK_TOKEN_BUS_NON_PROD'
 }
