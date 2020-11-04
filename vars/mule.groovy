@@ -1,3 +1,8 @@
+Map<String, String> businessGroupCodes = [
+  "Business Apps": "BUS",
+  "Enterprise Tech": "ENT",
+]
+
 def call(String mule_project, String build_tag) {
   def settings = libraryResource 'com/guardanthealth/settings.xml'
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
@@ -65,6 +70,11 @@ def call(String mule_project, String build_tag) {
         description: "Destination environment",
         choices: ['dev', 'sqa', 'prod']
       )
+      choice(
+        name: "BUSINESS_GROUP",
+        description: "Business group name",
+        choices: ["Business Apps", "Enterprise Tech"]
+      )
       booleanParam(
         name: 'SHOULD_DEPLOY',
         description: 'Deploy artifact to Anypoint when set to true',
@@ -81,12 +91,11 @@ def call(String mule_project, String build_tag) {
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
       RELEASE_SUFFIX              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
-      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(params.TARGET_ENVIRONMENT)
-      ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(params.TARGET_ENVIRONMENT)
-      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(params.TARGET_ENVIRONMENT)
+      BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
+      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
+      ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
+      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
     }
-
-
 
     stages {
       stage('Create shared dir') {
@@ -132,6 +141,7 @@ def call(String mule_project, String build_tag) {
             ]) {
               withMaven(mavenSettingsFilePath: 'settings.xml') {
                 sh """
+                  env
                   mvn -B clean
                 """
               }
@@ -224,32 +234,23 @@ def call(String mule_project, String build_tag) {
   }
 }
 
-String getAnypointClientSecretName(String publishEnv) {
-  switch (publishEnv) {
-    case 'sqa':
-      return 'MULESOFT_ANYPOINT_CLIENT_BUS_SQA'
-    case 'prod':
-      return 'MULESOFT_ANYPOINT_CLIENT_BUS_PROD'
-    default:
-      return 'MULESOFT_ANYPOINT_CLIENT_BUS_DEV'
-  }
+String getAnypointClientSecretName(String businessGroup, String publishEnv) {
+  String businessGroupCode = businessGroupCodes[businessGroup]
+  String environment = publishEnv.toUpperCase()
+
+  return "MULESOFT_ANYPOINT_CLIENT_${environment}_${businessGroupCode}"
 }
 
-String getAnypointKeySecretName(String publishEnv) {
-  switch (publishEnv) {
-    case 'sqa':
-      return 'MULESOFT_ANYPOINT_KEY_BUS_SQA'
-    case 'prod':
-      return 'MULESOFT_ANYPOINT_KEY_BUS_PROD'
-    default:
-      return 'MULESOFT_ANYPOINT_KEY_BUS_DEV'
-  }
+String getAnypointKeySecretName(String businessGroup, String publishEnv) {
+  String businessGroupCode = businessGroupCodes[businessGroup]
+  String environment = publishEnv.toUpperCase()
+
+  return "MULESOFT_ANYPOINT_KEY_${businessGroupCode}_${environment}"
 }
 
-String getSplunkTokenSecretName(String publishEnv) {
-  if (publishEnv == 'prod') {
-    return 'MULESOFT_SPLUNK_TOKEN_BUS_PROD'
-  }
+String getSplunkTokenSecretName(String businessGroup, String publishEnv) {
+  String businessGroupCode = businessGroupCodes[businessGroup]
+  String environment = (publishEnv == "prod") ? "PROD" : "NON-PROD"
 
-  return 'MULESOFT_SPLUNK_TOKEN_BUS_NON_PROD'
+  return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
