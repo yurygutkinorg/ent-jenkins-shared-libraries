@@ -1,9 +1,8 @@
-Map<String, String> businessGroupCodes = [
-  "Business Apps": "BUS",
-  "Enterprise Tech": "ENT",
-]
-
 def call(String mule_project, String build_tag) {
+  Map<String, String> businessGroupCodes = [
+    "Business Apps": "BUS",
+    "Enterprise Tech": "ENT",
+  ]
   def settings = libraryResource 'com/guardanthealth/settings.xml'
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
   pipeline {
@@ -250,13 +249,7 @@ String getAnypointKeySecretName(String businessGroup, String publishEnv) {
 
 String getSplunkTokenSecretName(String businessGroup, String publishEnv) {
   String businessGroupCode = businessGroupCodes[businessGroup]
-  String environment
-
-  if (publishEnv == "prod") {
-    environment = "PROD"
-  } else {
-    environment = "NON-PROD"
-  }
+  String environment = (publishEnv == "prod") ? "PROD" : "NON-PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
