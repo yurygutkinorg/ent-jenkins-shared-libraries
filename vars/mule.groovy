@@ -91,9 +91,9 @@ def call(String mule_project, String build_tag) {
       RELEASE_SUFFIX              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
-      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
-      ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
-      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(params.BUSINESS_GROUP, params.TARGET_ENVIRONMENT)
+      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
+      ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
+      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
     }
 
     stages {
@@ -233,22 +233,19 @@ def call(String mule_project, String build_tag) {
   }
 }
 
-String getAnypointClientSecretName(String businessGroup, String publishEnv) {
-  String businessGroupCode = businessGroupCodes[businessGroup]
+String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
 
   return "MULESOFT_ANYPOINT_CLIENT_${environment}_${businessGroupCode}"
 }
 
-String getAnypointKeySecretName(String businessGroup, String publishEnv) {
-  String businessGroupCode = businessGroupCodes[businessGroup]
+String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
 
   return "MULESOFT_ANYPOINT_KEY_${businessGroupCode}_${environment}"
 }
 
-String getSplunkTokenSecretName(String businessGroup, String publishEnv) {
-  String businessGroupCode = businessGroupCodes[businessGroup]
+String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   String environment = (publishEnv == "prod") ? "PROD" : "NON-PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
