@@ -140,7 +140,6 @@ def call(String mule_project, String build_tag) {
             ]) {
               withMaven(mavenSettingsFilePath: 'settings.xml') {
                 sh """
-                  env
                   mvn -B clean
                 """
               }
@@ -236,7 +235,7 @@ def call(String mule_project, String build_tag) {
 String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
 
-  return "MULESOFT_ANYPOINT_CLIENT_${environment}_${businessGroupCode}"
+  return "MULESOFT_ANYPOINT_CLIENT_${businessGroupCode}_${environment}"
 }
 
 String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
