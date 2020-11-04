@@ -250,7 +250,13 @@ String getAnypointKeySecretName(String businessGroup, String publishEnv) {
 
 String getSplunkTokenSecretName(String businessGroup, String publishEnv) {
   String businessGroupCode = businessGroupCodes[businessGroup]
-  String environment = (publishEnv == "prod") ? "PROD" : "NON-PROD"
+  String environment
+
+  if (publishEnv == "prod") {
+    environment = "PROD"
+  } else {
+    environment = "NON-PROD"
+  }
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
