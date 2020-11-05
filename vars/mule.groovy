@@ -173,7 +173,7 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
-                    env | grep MULE
+                    env
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
                   """
