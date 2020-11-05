@@ -88,7 +88,7 @@ def call(String mule_project, String build_tag) {
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
-      RELEASE_NAME              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
+      RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
@@ -138,11 +138,14 @@ def call(String mule_project, String build_tag) {
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
               usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
             ]) {
-              withMaven(mavenSettingsFilePath: 'settings.xml') {
-                sh """
-                  env
-                  mvn -B clean
-                """
+              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+                withMaven(mavenSettingsFilePath: 'settings.xml') {
+                  sh """
+                    env
+                    mvn versions:set -DnewVersion=${env.RELEASE_NAME}
+                    mvn -B clean
+                  """
+                }
               }
             }
           }
@@ -155,10 +158,13 @@ def call(String mule_project, String build_tag) {
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
               usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
             ]) {
-              withMaven(mavenSettingsFilePath: 'settings.xml') {
-                sh """
-                  mvn -B test
-                """
+              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+                withMaven(mavenSettingsFilePath: 'settings.xml') {
+                  sh """
+                    mvn versions:set -DnewVersion=${env.RELEASE_NAME}
+                    mvn -B test
+                  """
+                }
               }
             }
           }
