@@ -88,7 +88,7 @@ def call(String mule_project, String build_tag) {
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
-      RELEASE_SUFFIX              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
+      RELEASE_NAME              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
@@ -115,7 +115,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_SUFFIX = env.BRANCH_NAME.split("release-")[1].trim()
+            RELEASE_NAME = env.BRANCH_NAME.split("release-")[1].trim()
           }
         }
       }
@@ -127,7 +127,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_SUFFIX = "-${env.RELEASE_SUFFIX}"
+            RELEASE_NAME = "0.0.0-${env.RELEASE_NAME}"
           }
         }
       }
@@ -170,9 +170,10 @@ def call(String mule_project, String build_tag) {
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
               usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
             ]) {
-              withEnv(["RELEASE_SUFFIX=${RELEASE_SUFFIX}"]) {
+              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
+                    mvn versions:set -dnewVersion=${env.RELEASE_NAME}
                     mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
                   """
                 }
@@ -194,7 +195,7 @@ def call(String mule_project, String build_tag) {
               string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
               string(credentialsId: "${env.SPLUNK_TOKEN_SECRET_NAME}", variable: 'SPLUNK_TOKEN')
             ]) {
-              withEnv(["RELEASE_SUFFIX=${RELEASE_SUFFIX}"]) {
+              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
                      mvn -B dependency:copy -P${env.TARGET_ENVIRONMENT}
