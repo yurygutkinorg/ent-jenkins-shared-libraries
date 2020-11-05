@@ -127,7 +127,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_NAME = "0.0.0-${env.RELEASE_NAME}"
+            RELEASE_NAME = "0.0.1-${env.RELEASE_NAME}"
           }
         }
       }
