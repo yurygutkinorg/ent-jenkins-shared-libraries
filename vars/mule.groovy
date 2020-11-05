@@ -140,6 +140,7 @@ def call(String mule_project, String build_tag) {
             ]) {
               withMaven(mavenSettingsFilePath: 'settings.xml') {
                 sh """
+                  env
                   mvn -B clean
                 """
               }
