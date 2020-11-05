@@ -170,7 +170,7 @@ def call(String mule_project, String build_tag) {
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
               usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
             ]) {
-              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+              withEnv(["RELEASE_NAME=${RELEASE_NAME}", "MULE_PROJECT=${MULE_PROJECT}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
