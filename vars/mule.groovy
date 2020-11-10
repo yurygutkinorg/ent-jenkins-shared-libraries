@@ -67,7 +67,7 @@ def call(String mule_project, String build_tag) {
       choice(
         name: "TARGET_ENVIRONMENT",
         description: "Destination environment",
-        choices: ['dev', 'sqa', 'prod']
+        choices: ['dev', 'sqa', 'prd']
       )
       choice(
         name: "BUSINESS_GROUP",
@@ -83,7 +83,6 @@ def call(String mule_project, String build_tag) {
 
     environment {
       MULE_PROJECT                = "${mule_project}"
-      REPO_NAME                   = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
@@ -216,7 +215,7 @@ def call(String mule_project, String build_tag) {
       success {
         script {
           slack.notify(
-            repositoryName: env.REPO_NAME,
+            repositoryName: env.MULE_PROJECT,
             status: 'Success',
             additionalText: "",
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
@@ -226,7 +225,7 @@ def call(String mule_project, String build_tag) {
       failure {
         script {
           slack.notify(
-            repositoryName: env.REPO_NAME,
+            repositoryName: env.MULE_PROJECT,
             status: 'Failure',
             additionalText: "",
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
