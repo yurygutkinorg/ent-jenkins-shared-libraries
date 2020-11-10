@@ -41,14 +41,15 @@ The pipeline sets a couple of environment variables that can be used as paramete
 * `TARGET_ENVIRONMENT` the name of the Anypoint environment that the application will be deployed to
 * `BUSINESS_GROUP` the name of the Anypoint business group that the application will be deployed to
 * `RELEASE_NAME` the release name, consisting of the branch name and Git commit hash. For `release-*` branches, it will be prefixed with the release version
+* `SHOULD_PUBLISH` flag indicating if the application should be published to Artifactory
 * `SHOULD_DEPLOY` flag indicating if the application should be deployed to Anypoint
 
 ### Pipeline steps
 
 * `Clean` cleans the Maven working directory and downloads all the missing dependencies - also sets the built application version to the one prepared in the `RELEASE_NAME` parameter (additional information [here](https://maven.apache.org/plugins/maven-clean-plugin/usage.html]))
 * `Run tests` runs MUnit tests (additional information [here](https://docs.mulesoft.com/munit/2.3/munit-maven-plugin))
-* `Build and upload to Artifactory` creates a jar package and uploads it to Artifactory server defined in the `distributionManagement` node in the `pom.xml` file (additional information [here](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html))
-* `Publish to Anypoint` first part of this step downloads the previously built artifact from Artifactory to the directory determined by the `OUTPUT_DIR` variable. The artifact must be declared in the `pom.xml` file, so the dependency plugin can pull it from the repository. The second part of this step deploys the fetched application to the Anypoint platform. The `BUSINESS_GROUP` AND `TARGET_ENVIRONMENT` determine where exactly the application will be deployed. The build will remain in progress until the application is finished deploying - the build result will be determined by the deployment result - build fails if the application won't start properly (more information on dependencies [here](https://maven.apache.org/plugins/maven-dependency-plugin/) and on the Mule deployment [here](https://docs.mulesoft.com/mule-runtime/4.3/deploy-to-cloudhub))
+* `Build and upload to Artifactory` creates a jar package and uploads it to Artifactory server defined in the `distributionManagement` node in the `pom.xml` file - runs only if the `SHOULD_PUBLISH` parameter is set to true (additional information [here](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html))
+* `Publish to Anypoint` first part of this step downloads the previously built artifact from Artifactory to the directory determined by the `OUTPUT_DIR` variable. The artifact must be declared in the `pom.xml` file, so the dependency plugin can pull it from the repository. The second part of this step deploys the fetched application to the Anypoint platform. The `BUSINESS_GROUP` AND `TARGET_ENVIRONMENT` determine where exactly the application will be deployed. The build will remain in progress until the application is finished deploying - the build result will be determined by the deployment result - build fails if the application won't start properly; runs only if the `SHOULD_DEPLOY` parameter is set to true (more information on dependencies [here](https://maven.apache.org/plugins/maven-dependency-plugin/) and on the Mule deployment [here](https://docs.mulesoft.com/mule-runtime/4.3/deploy-to-cloudhub))
 
 ### Secrets
 
