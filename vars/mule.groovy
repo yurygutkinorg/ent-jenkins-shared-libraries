@@ -75,6 +75,11 @@ def call(String mule_project, String build_tag) {
         choices: ["Business Apps", "Enterprise Tech"]
       )
       booleanParam(
+        name: 'SHOULD_PUBLISH',
+        description: 'Publish application to Artifactory when set to true',
+        defaultValue: true
+      )
+      booleanParam(
         name: 'SHOULD_DEPLOY',
         description: 'Deploy artifact to Anypoint when set to true',
         defaultValue: false
@@ -168,6 +173,9 @@ def call(String mule_project, String build_tag) {
         }
       }
       stage('Build and upload to Artifactory') {
+        when {
+          expression { params.SHOULD_PUBLISH == true }
+        }
         steps {
           container('maven') {
             withCredentials([
