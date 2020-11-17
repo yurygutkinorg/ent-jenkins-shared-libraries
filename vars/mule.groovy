@@ -140,7 +140,7 @@ def call(String mule_project, String build_tag) {
           container('maven') {
             withCredentials([
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
-              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
+              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
@@ -159,7 +159,7 @@ def call(String mule_project, String build_tag) {
           container('maven') {
             withCredentials([
               usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
-              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
+              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
@@ -202,7 +202,7 @@ def call(String mule_project, String build_tag) {
             withCredentials([
               usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
               usernamePassword(credentialsId: "${env.ANYPOINT_CLIENT_SECRET_NAME}", usernameVariable: 'ANYPOINT_CLIENT_ID', passwordVariable: 'ANYPOINT_CLIENT_SECRET'),
-              usernamePassword(credentialsId: 'MULESOFT_DANDRUSZAK_DEBUG', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
+              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
               string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
               string(credentialsId: "${env.SPLUNK_TOKEN_SECRET_NAME}", variable: 'SPLUNK_TOKEN')
             ]) {
