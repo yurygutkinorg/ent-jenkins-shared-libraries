@@ -67,7 +67,7 @@ def call(String mule_project, String build_tag) {
       choice(
         name: "TARGET_ENVIRONMENT",
         description: "Destination environment",
-        choices: ['dev', 'sqa', 'prd']
+        choices: ['dev', 'sqa', 'val', 'prd']
       )
       choice(
         name: "BUSINESS_GROUP",
