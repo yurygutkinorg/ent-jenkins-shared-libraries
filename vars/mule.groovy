@@ -252,13 +252,13 @@ String getAnypointClientSecretName(String businessGroupCode, String publishEnv) 
 }
 
 String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
-  String environment = publishEnv.toUpperCase()
+  String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_ANYPOINT_KEY_${businessGroupCode}_${environment}"
 }
 
 String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
-  String environment = (publishEnv == "prod") ? "PROD" : "NON_PROD"
+  String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
