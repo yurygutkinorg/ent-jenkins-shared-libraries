@@ -67,7 +67,7 @@ def call(String mule_project, String build_tag) {
       choice(
         name: "TARGET_ENVIRONMENT",
         description: "Destination environment",
-        choices: ['dev', 'sqa', 'val', 'stg', 'prd']
+        choices: ['dev']
       )
       choice(
         name: "BUSINESS_GROUP",
@@ -79,11 +79,6 @@ def call(String mule_project, String build_tag) {
         description: 'Publish application to Artifactory when set to true',
         defaultValue: true
       )
-      booleanParam(
-        name: 'SHOULD_DEPLOY',
-        description: 'Deploy artifact to Anypoint when set to true',
-        defaultValue: false
-      )
     }
 
     environment {
@@ -93,7 +88,6 @@ def call(String mule_project, String build_tag) {
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
-      SHOULD_DEPLOY               = "${params.SHOULD_DEPLOY}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
