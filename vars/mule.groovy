@@ -174,9 +174,6 @@ def call(String mule_project, String build_tag) {
         }
       }
       stage('Build and upload to Artifactory') {
-        when {
-          expression { params.SHOULD_PUBLISH == true }
-        }
         steps {
           container('maven') {
             withCredentials([
@@ -196,7 +193,7 @@ def call(String mule_project, String build_tag) {
       }
       stage('Publish to Anypoint') {
         when {
-          expression { params.SHOULD_DEPLOY == true }
+          expression { env.BRANCH_NAME == 'master' }
         }
         steps {
           container('maven') {
