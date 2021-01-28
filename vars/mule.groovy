@@ -85,7 +85,7 @@ def call(String mule_project, String build_tag) {
       MULE_PROJECT                = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION     = false
+      SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.VERSION}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
