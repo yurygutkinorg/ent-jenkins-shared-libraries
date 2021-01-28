@@ -85,9 +85,9 @@ def call(String mule_project, String build_tag) {
       MULE_PROJECT                = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION     = true
+      SEND_SLACK_NOTIFICATION     = false
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
-      RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
+      RELEASE_NAME                = "${env.BRANCH_NAME}-${env.VERSION}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
@@ -104,28 +104,6 @@ def call(String mule_project, String build_tag) {
         steps {
           script {
             writeFile(file: "settings.xml", text: settings)
-          }
-        }
-      }
-      stage('Release branch') {
-        when {
-          expression {env.BRANCH_NAME.split("release-").size() == 2}
-        }
-        steps {
-          script{
-            RELEASE_NAME = env.BRANCH_NAME.split("release-")[1].trim()
-          }
-        }
-      }
-      stage('Non-release branch') {
-        when {
-          not {
-            expression {env.BRANCH_NAME.split("release-").size() == 2}
-          }
-        }
-        steps {
-          script{
-            RELEASE_NAME = "0.0.1-${env.RELEASE_NAME}"
           }
         }
       }
