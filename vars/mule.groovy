@@ -87,7 +87,7 @@ def call(String mule_project, String build_tag) {
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "${params.TARGET_ENVIRONMENT}"
-      RELEASE_NAME                = "${env.BRANCH_NAME}-${env.VERSION}"
+      RELEASE_NAME                = "${env.BRANCH_NAME}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], params.TARGET_ENVIRONMENT)
