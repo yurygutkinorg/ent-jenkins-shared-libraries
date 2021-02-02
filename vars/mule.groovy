@@ -77,7 +77,7 @@ def call(String mule_project, String build_tag) {
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "dev"
-      RELEASE_NAME                = "${env.BRANCH_NAME}"
+      RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
@@ -97,6 +97,28 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
+      stage('Release branch') {
+        when {
+          expression {env.BRANCH_NAME.split("release-").size() == 2}
+        }
+        steps {
+          script{
+            RELEASE_NAME = env.BRANCH_NAME.split("release-")[1].trim()
+          }
+        }
+      }
+      stage('Non-release branch') {
+        when {
+          not {
+            expression {env.BRANCH_NAME.split("release-").size() == 2}
+          }
+        }
+        steps {
+          script{
+            RELEASE_NAME = "0.0.1-${env.RELEASE_NAME}"
+          }
+        }
+      }
       stage('Clean') {
         steps {
           container('maven') {
@@ -107,6 +129,7 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
+                    mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean
                   """
                 }
