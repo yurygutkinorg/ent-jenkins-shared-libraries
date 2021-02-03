@@ -198,6 +198,7 @@ def call(String mule_project, String build_tag) {
         )
       }
     }
+  }
     post {
       success {
         script {
@@ -221,7 +222,6 @@ def call(String mule_project, String build_tag) {
       }
     }
   }
-}
 }
 def getTARGET_ENVIRONMENT(TARGET_ENVIRONMENT) {
   if(TARGET_ENVIRONMENT == 'auto') {
