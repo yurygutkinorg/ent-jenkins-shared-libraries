@@ -201,14 +201,14 @@ def getBranchEnv(branchName) {
         echo "MULE_PROJECT: ${env.MULE_PROJECT}"
         echo "BRANCH_NAME:  ${env.BRANCH_NAME}"
         echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
-		echo "RELEASE_NAME:  ${env.RELEASE_NAME}"
+        echo "RELEASE_NAME:  ${env.RELEASE_NAME}"
         build(
           job: "/deployments/mulesoft",
           parameters: [
             string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
             string(name: 'BRANCH_NAME',  value: env.BRANCH_NAME),
             string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT)
-			string(name: 'RELEASE_NAME',  value: env.RELEASE_NAME)
+            string(name: 'RELEASE_NAME',  value: env.RELEASE_NAME)
           ],
           propagate: true,
           wait: true
