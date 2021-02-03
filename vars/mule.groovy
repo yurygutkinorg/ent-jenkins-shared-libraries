@@ -207,7 +207,7 @@ def getBranchEnv(branchName) {
           parameters: [
             string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
             string(name: 'BRANCH_NAME',  value: env.BRANCH_NAME),
-            string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT)
+            string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT),
             string(name: 'RELEASE_NAME',  value: env.RELEASE_NAME)
           ],
           propagate: true,
