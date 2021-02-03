@@ -5,6 +5,24 @@ def call(String mule_project, String build_tag) {
   ]
   def settings = libraryResource 'com/guardanthealth/settings.xml'
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
+  
+  def getTARGET_ENVIRONMENT(TARGET_ENVIRONMENT) {
+  if(TARGET_ENVIRONMENT == 'auto') {
+    return getBranchEnv(BRANCH_NAME)
+  }
+  return TARGET_ENVIRONMENT
+}
+
+def getBranchEnv(branchName) {
+  switch(branchName) {
+      case ~/release-.*/:
+        return 'val'
+      case 'master':
+        return 'sqa'
+      default:
+        return 'dev'
+    }
+}
   pipeline {
     agent {
       kubernetes {
@@ -180,25 +198,21 @@ def call(String mule_project, String build_tag) {
           expression { env.BRANCH_NAME == 'master' }
         }
         steps {
-          container('maven') {
-            withCredentials([
-              usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
-              usernamePassword(credentialsId: "${env.ANYPOINT_CLIENT_SECRET_NAME}", usernameVariable: 'ANYPOINT_CLIENT_ID', passwordVariable: 'ANYPOINT_CLIENT_SECRET'),
-              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
-              string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
-              string(credentialsId: "${env.SPLUNK_TOKEN_SECRET_NAME}", variable: 'SPLUNK_TOKEN')
-            ]) {
-              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-                withMaven(mavenSettingsFilePath: 'settings.xml') {
-                  sh """
-                     mvn -B dependency:copy -P${env.TARGET_ENVIRONMENT}
-                     mvn -B mule:deploy -P${env.TARGET_ENVIRONMENT}
-                  """
-                }
-              }
-            }
-          }
-        }
+        echo "MULE_PROJECT: ${env.MULE_PROJECT}"
+        echo "BRANCH_NAME:  ${env.BRANCH_NAME}"
+        echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
+		echo "RELEASE_NAME:  ${env.RELEASE_NAME}"
+        build(
+          job: "/deployments/mulesoft",
+          parameters: [
+            string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
+            string(name: 'BRANCH_NAME',  value: env.BRANCH_NAME),
+            string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT)
+			string(name: 'RELEASE_NAME',  value: env.RELEASE_NAME)
+          ],
+          propagate: true,
+          wait: true
+        )
       }
     }
     post {
@@ -224,7 +238,6 @@ def call(String mule_project, String build_tag) {
       }
     }
   }
-}
 
 String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
