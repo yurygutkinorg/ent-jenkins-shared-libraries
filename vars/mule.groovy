@@ -238,6 +238,8 @@ def getBranchEnv(branchName) {
       }
     }
   }
+}
+}
 
 String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
