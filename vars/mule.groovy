@@ -5,7 +5,6 @@ def call(String mule_project, String build_tag) {
   ]
   def settings = libraryResource 'com/guardanthealth/settings.xml'
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
-
   pipeline {
     agent {
       kubernetes {
