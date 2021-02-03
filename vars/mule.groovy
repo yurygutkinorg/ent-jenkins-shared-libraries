@@ -223,23 +223,6 @@ def call(String mule_project, String build_tag) {
     }
   }
 }
-def getTARGET_ENVIRONMENT(TARGET_ENVIRONMENT) {
-  if(TARGET_ENVIRONMENT == 'auto') {
-    return getBranchEnv(BRANCH_NAME)
-  }
-  return TARGET_ENVIRONMENT
-}
-
-def getBranchEnv(branchName) {
-  switch(branchName) {
-      case ~/release-.*/:
-        return 'val'
-      case 'master':
-        return 'sqa'
-      default:
-        return 'dev'
-    }
-}
 
 String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
