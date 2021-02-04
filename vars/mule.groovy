@@ -79,6 +79,7 @@ def call(String mule_project, String build_tag) {
       TARGET_ENVIRONMENT          = "dev"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
+      GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
       SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
@@ -103,7 +104,7 @@ def call(String mule_project, String build_tag) {
         }
         steps {
           script{
-            RELEASE_NAME = env.BRANCH_NAME.split("release-")[1].trim()
+            RELEASE_NAME = "${env.BRANCH_NAME.split("release-")[1].trim()}-${env.GIT_TAG}"
           }
         }
       }
