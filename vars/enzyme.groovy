@@ -130,7 +130,7 @@ EOF
             string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
           ]) {
             container('gradle') {
-              sh "make publish"
+              //sh "make publish"
               sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
             }
           }
