@@ -75,7 +75,7 @@ def call(String mule_project, String build_tag) {
       MULE_PROJECT                = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION     = false
+      SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "dev"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
@@ -195,7 +195,7 @@ def call(String mule_project, String build_tag) {
         echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
         echo "RELEASE_NAME:  ${env.BRANCH_NAME}"
         build(
-          job: "/deployments/mulesoft-testing",
+          job: "/deployments/mulesoft",
           parameters: [
             string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
             string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT),
