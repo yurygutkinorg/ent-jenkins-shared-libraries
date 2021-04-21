@@ -75,7 +75,7 @@ def call(String mule_project, String build_tag) {
       MULE_PROJECT                = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION     = true
+      SEND_SLACK_NOTIFICATION     = false
       TARGET_ENVIRONMENT          = "dev"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
@@ -83,6 +83,7 @@ def call(String mule_project, String build_tag) {
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
       SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
+      SPLUNK_HEC_TOKEN_SECRET_NAME= getSplunkHecTokenSecretName(businessGroupCodes[params.BUSINESS_GROUP], env.TARGET_ENVIRONMENT)
     }
 
     stages {
@@ -98,6 +99,14 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
+      stage('Set the build Name') {
+        steps {
+          script {
+            currentBuild.displayName = "${env.RELEASE_NAME}-${env.BUILD_NUMBER}"
+          }
+        }
+      }
+
       stage('Release branch') {
         when {
           expression {env.BRANCH_NAME.split("release-").size() == 2}
@@ -120,6 +129,7 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
+
       stage('Clean') {
         steps {
           container('maven') {
@@ -182,16 +192,14 @@ def call(String mule_project, String build_tag) {
         }
         steps {
         echo "MULE_PROJECT: ${env.MULE_PROJECT}"
-        echo "BRANCH_NAME:  ${env.BRANCH_NAME}"
         echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
-        echo "RELEASE_NAME:  ${env.RELEASE_NAME}"
+        echo "RELEASE_NAME:  ${env.BRANCH_NAME}"
         build(
-          job: "/deployments/mulesoft",
+          job: "/deployments/mulesoft-testing",
           parameters: [
             string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
-            string(name: 'BRANCH_NAME',  value: env.BRANCH_NAME),
             string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT),
-            string(name: 'RELEASE_NAME',  value: env.RELEASE_NAME)
+            string(name: 'RELEASE_NAME',  value: env.BRANCH_NAME)
           ],
           propagate: true,
           wait: true
@@ -240,4 +248,9 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
+}
+String getSplunkHecTokenSecretName(String businessGroupCode, String publishEnv) {
+  String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
+
+  return "MULESOFT_HEC_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
