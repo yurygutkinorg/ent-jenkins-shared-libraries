@@ -66,4 +66,3 @@ Some environment variables need to be set from Jenkins secrets for the pipeline 
 
 Some explanation for the Jenkins secret name parameter names:
 * `BUSINESS_GROUP_CODE` is a three-letter code of a business group (in this case the full names are abbreviated for the sake of variable names length) - possible values `BUS`, `ENT`
-* `ENVIRONMENT` is the name of the target environment, it's basically the `TARGET_ENVIRONMENT` parameter, but upper-case - possible values `DEV` which is default.

@@ -86,6 +86,14 @@ def call(String mule_project, String build_tag) {
     }
 
     stages {
+	  stage('Set the build Name') {
+        steps {
+          script {
+            currentBuild.displayName = "${env.RELEASE_NAME}-${env.BUILD_NUMBER}"
+          }
+        }
+      }
+
       stage('Create shared dir') {
         steps {
           sh "mkdir -p ${env.SHARED_DIR}"
@@ -95,13 +103,6 @@ def call(String mule_project, String build_tag) {
         steps {
           script {
             writeFile(file: "settings.xml", text: settings)
-          }
-        }
-      }
-      stage('Set the build Name') {
-        steps {
-          script {
-            currentBuild.displayName = "${env.RELEASE_NAME}-${env.BUILD_NUMBER}"
           }
         }
       }
