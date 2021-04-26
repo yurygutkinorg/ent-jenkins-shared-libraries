@@ -86,7 +86,7 @@ def call(String mule_project, String build_tag) {
     }
 
     stages {
-	  stage('Set the build Name') {
+      stage('Set the build Name') {
         steps {
           script {
             currentBuild.displayName = "${env.RELEASE_NAME}-${env.BUILD_NUMBER}"
