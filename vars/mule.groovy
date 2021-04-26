@@ -94,103 +94,108 @@ def call(String mule_project, String build_tag) {
         }
       }
 
-      stage('Create shared dir') {
+    stage('Create shared dir') {
         steps {
           sh "mkdir -p ${env.SHARED_DIR}"
         }
       }
-      stage('Write maven settings to the workspace') {
-        steps {
-          script {
-            writeFile(file: "settings.xml", text: settings)
+    
+    stage('Write maven settings to the workspace') {
+      steps {
+        script {
+          writeFile(file: "settings.xml", text: settings)
           }
         }
       }
 
-      stage('Release branch') {
-        when {
+    stage('Release branch') {
+      when {
+        expression {env.BRANCH_NAME.split("release-").size() == 2}
+      }
+      steps {
+        script{
+          RELEASE_NAME = "${env.BRANCH_NAME.split("release-")[1].trim()}-${env.GIT_TAG}"
+        }
+      }
+    }
+    
+    stage('Non-release branch') {
+      when {
+        not {
           expression {env.BRANCH_NAME.split("release-").size() == 2}
         }
-        steps {
-          script{
-            RELEASE_NAME = "${env.BRANCH_NAME.split("release-")[1].trim()}-${env.GIT_TAG}"
-          }
+      }
+      steps {
+        script{
+          RELEASE_NAME = "0.0.1-${env.RELEASE_NAME}"
         }
       }
-      stage('Non-release branch') {
-        when {
-          not {
-            expression {env.BRANCH_NAME.split("release-").size() == 2}
-          }
-        }
-        steps {
-          script{
-            RELEASE_NAME = "0.0.1-${env.RELEASE_NAME}"
-          }
-        }
-      }
+    }
 
-      stage('Clean') {
-        steps {
-          container('maven') {
-            withCredentials([
-              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
-              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
-            ]) {
+    stage('Clean') {
+      steps {
+        container('maven') {
+          withCredentials([
+            usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+            usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD')
+          ]) {
+            withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+            withMaven(mavenSettingsFilePath: 'settings.xml') {
+              sh """
+                mvn versions:set -DnewVersion=${env.RELEASE_NAME}
+                mvn -B clean
+                 """
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    stage('Run tests') {
+      steps {
+        container('maven') {
+          withCredentials([
+            usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+            usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
+            string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
+          ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-                withMaven(mavenSettingsFilePath: 'settings.xml') {
-                  sh """
-                    mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B clean
-                  """
+              withMaven(mavenSettingsFilePath: 'settings.xml') {
+                sh """
+                  mvn -B test
+                   """
                 }
               }
             }
           }
         }
       }
-      stage('Run tests') {
-        steps {
-          container('maven') {
-            withCredentials([
-              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
-              usernamePassword(credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', usernameVariable: 'ANYPOINT_USERNAME', passwordVariable: 'ANYPOINT_PASSWORD'),
-              string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
-            ]) {
+    
+    stage('Build and upload to Artifactory') {
+      steps {
+        container('maven') {
+          withCredentials([
+            usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
+            usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
+          ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-                withMaven(mavenSettingsFilePath: 'settings.xml') {
-                  sh """
-                    mvn -B test
-                  """
+              withMaven(mavenSettingsFilePath: 'settings.xml') {
+                sh """
+                  mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
+                   """
                 }
               }
             }
           }
         }
       }
-      stage('Build and upload to Artifactory') {
-        steps {
-          container('maven') {
-            withCredentials([
-              usernamePassword(credentialsId: 'MULESOFT_NEXUS_REPOSITORY', usernameVariable: 'MULE_REPOSITORY_USERNAME', passwordVariable: 'MULE_REPOSITORY_PASSWORD'),
-              usernamePassword(credentialsId: 'artifactory_svc_data_team', usernameVariable: 'ARTIFACTORY_USERNAME', passwordVariable: 'ARTIFACTORY_PASSWORD'),
-            ]) {
-              withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-                withMaven(mavenSettingsFilePath: 'settings.xml') {
-                  sh """
-                    mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
-                  """
-                }
-              }
-            }
-          }
-        }
+    
+    stage('Publish to Anypoint') {
+      when {
+        expression { env.BRANCH_NAME == 'master' }
       }
-      stage('Publish to Anypoint') {
-        when {
-          expression { env.BRANCH_NAME == 'master' }
-        }
-        steps {
+      steps {
         echo "MULE_PROJECT: ${env.MULE_PROJECT}"
         echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
         echo "RELEASE_NAME:  ${env.BRANCH_NAME}"
