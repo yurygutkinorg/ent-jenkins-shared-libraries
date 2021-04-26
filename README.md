@@ -35,7 +35,7 @@ The pipeline sets a couple of environment variables that can be used as paramete
 * `GIT_COMMIT` the hash of the Git commit
 * `GIT_TAG` shortening the value to first 8-digits of `GIT_COMMIT`.
 * `SEND_SLACK_NOTIFICATION` enable sending a Slack notification with the pipeline result
-* `TARGET_ENVIRONMENT` It's always default to `dev` environment
+* `TARGET_ENVIRONMENT` It always defaults to `dev` environment
 * `BUSINESS_GROUP` the name of the Anypoint business group that the application will be deployed to
 * `RELEASE_NAME` the release name, consisting of the branch name and Git commit hash
 * `BRANCH_NAME` the branch name of an individual application project repository. For `master` branch always it will be build and deploy to `dev` env (i.e. CI )
