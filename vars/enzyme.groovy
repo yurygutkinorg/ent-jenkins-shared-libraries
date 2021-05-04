@@ -277,7 +277,7 @@ spec:
     securityContext:
       runAsUser: 0
       fsGroup: 1000
-    image: gradle:3.5-alpine
+    image: gradle:4.10.3-alpine
     command:
     - "sh"
     - "-c"
