@@ -19,16 +19,12 @@ The `master` value can be replaced by any branch name from the `ent-jenkins-shar
 
 These parameters can be set in the `Build with parameters` form.
 
-* `TARGET_ENVIRONMENT` (possible values `dev`, `sqa`, `prd` - default `dev`) is the name of the Anypoint environment that the application will be deployed to. The three available values should be reflected in the project's `pom.xml` file, in the `profiles` section. The value set here will be used in the `mvn -P<TARGET_ENVIRONMENT>` parameter while building and deploying the application.
-
 * `BUSINESS_GROUP` (possible values `Business Apps`, `Enterprise Tech` - default `Business Apps`) is the name of the Anypoint business group that the application will be deployed to. The available values reflect the current Anypoint setup. The selected value is also available as an environment variable and can be used in the `pom.xml` files in the `properties.businessGroup` node.
 ```xml
 <properties>
     <businessGroup>${env.BUSINESS_GROUP}`</businessGroup>
 </properties>
 ```
-
-* `SHOULD_DEPLOY` (possible values `true`, `false` - default `false`) determines whether the application should be deployed to the Anypoint platform. By default this switch is off, which means that the application will be built and published to Artifactory, but won't be published to Anypoint. Enabling this option will run and additional step after the build, publishing the artifact to Anypoint, using the business group and environment set in `BUSINESS_GROUP` AND `TARGET_ENVIRONMENT`
 
 ### Environment variables
 
@@ -37,20 +33,20 @@ The pipeline sets a couple of environment variables that can be used as paramete
 * `MULE_PROJECT` the name of the project passed to the pipeline
 * `SHARED_DIR` a shared directory created at the beginning of the pipeline and available to every step
 * `GIT_COMMIT` the hash of the Git commit
+* `GIT_TAG` shortening the value to first 8-digits of `GIT_COMMIT`.
 * `SEND_SLACK_NOTIFICATION` enable sending a Slack notification with the pipeline result
-* `TARGET_ENVIRONMENT` the name of the Anypoint environment that the application will be deployed to
+* `TARGET_ENVIRONMENT` It always defaults to `dev` environment
 * `BUSINESS_GROUP` the name of the Anypoint business group that the application will be deployed to
-* `RELEASE_NAME` the release name, consisting of the branch name and Git commit hash. For `release-*` branches, it will be prefixed with the release version
-* `SHOULD_PUBLISH` flag indicating if the application should be published to Artifactory
-* `SHOULD_DEPLOY` flag indicating if the application should be deployed to Anypoint
+* `RELEASE_NAME` the release name, consisting of the branch name and Git commit hash
+* `BRANCH_NAME` the branch name of an individual application project repository. For `master` branch always it will be build and deploy to `dev` env (i.e. CI )
 
 ### Pipeline steps
 
 * `Clean` cleans the Maven working directory and downloads all the missing dependencies - also sets the built application version to the one prepared in the `RELEASE_NAME` parameter (additional information [here](https://maven.apache.org/plugins/maven-clean-plugin/usage.html]))
 * `Run tests` runs MUnit tests (additional information [here](https://docs.mulesoft.com/munit/2.3/munit-maven-plugin))
-* `Build and upload to Artifactory` creates a jar package and uploads it to Artifactory server defined in the `distributionManagement` node in the `pom.xml` file - runs only if the `SHOULD_PUBLISH` parameter is set to true (additional information [here](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html))
-* `Publish to Anypoint` first part of this step downloads the previously built artifact from Artifactory to the directory determined by the `OUTPUT_DIR` variable. The artifact must be declared in the `pom.xml` file, so the dependency plugin can pull it from the repository. The second part of this step deploys the fetched application to the Anypoint platform. The `BUSINESS_GROUP` AND `TARGET_ENVIRONMENT` determine where exactly the application will be deployed. The build will remain in progress until the application is finished deploying - the build result will be determined by the deployment result - build fails if the application won't start properly; runs only if the `SHOULD_DEPLOY` parameter is set to true (more information on dependencies [here](https://maven.apache.org/plugins/maven-dependency-plugin/) and on the Mule deployment [here](https://docs.mulesoft.com/mule-runtime/4.3/deploy-to-cloudhub))
-
+* `Build and upload to Artifactory` creates a jar package and uploads it to Artifactory server defined in the `distributionManagement` node in the `pom.xml` file - runs  [here](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html))
+* `Publish to Anypoint` first part of this step downloads the previously built artifact from Artifactory to the directory determined by the `OUTPUT_DIR` variable. The artifact must be declared in the `pom.xml` file, so the dependency plugin can pull it from the repository. The second part of this step deploys the fetched application to the Anypoint platform. The `BUSINESS_GROUP`  determine where exactly the application will be deployed AND `TARGET_ENVIRONMENT` will be `dev` and when branch_name is always `master`. The build will remain in progress until the application is finished deploying - the build result will be determined by the deployment result - build fails if the application won't start properly (more information on dependencies [here](https://maven.apache.org/plugins/maven-dependency-plugin/) and on the Mule deployment [here](https://docs.mulesoft.com/mule-runtime/4.3/deploy-to-cloudhub))
+* `currentBuild.displayName` its combination of both env.RELEASE_NAME and BUILD_NUMBER. e.g. MUL-123-345fcr50-34 or release-9.9.9-5ea8104c or master-256793ce
 ### Secrets
 
 Some environment variables need to be set from Jenkins secrets for the pipeline to function properly.
@@ -70,5 +66,3 @@ Some environment variables need to be set from Jenkins secrets for the pipeline 
 
 Some explanation for the Jenkins secret name parameter names:
 * `BUSINESS_GROUP_CODE` is a three-letter code of a business group (in this case the full names are abbreviated for the sake of variable names length) - possible values `BUS`, `ENT`
-* `ENVIRONMENT` is the name of the target environment, it's basically the `TARGET_ENVIRONMENT` parameter, but upper-case - possible values `DEV`, `SQA`, `PRD`
-* `ENVIRONMENT_TYPE` determines the production or non-production Splunk - possible values `PROD`, `NON-PROD`
