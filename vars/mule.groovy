@@ -85,7 +85,6 @@ def call(String mule_project, String build_tag) {
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
       )
-
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
@@ -234,12 +233,14 @@ def call(String mule_project, String build_tag) {
           echo "MULE_PROJECT: ${env.MULE_PROJECT}"
           echo "TARGET_ENVIRONMENT:  ${env.TARGET_ENVIRONMENT}"
           echo "RELEASE_NAME:  ${RELEASE_NAME}"
+          echo "BUSINESS_GROUP:  ${env.BUSINESS_GROUP}"
           build(
             job: "/deployments/mulesoft",
             parameters: [
               string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
               string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT),
-              string(name: 'RELEASE_NAME',  value: RELEASE_NAME)
+              string(name: 'RELEASE_NAME',  value: RELEASE_NAME),
+              string(name: 'BUSINESS_GROUP',  value: env.BUSINESS_GROUP)
             ],
             propagate: true,
             wait: true
