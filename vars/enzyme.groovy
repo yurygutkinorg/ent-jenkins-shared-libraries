@@ -64,21 +64,6 @@ def call(String enzymeProject, String branchName, String buildTag) {
         }
       }
 
-      stage('Build, test and copy gradle binaries to shared directory') {
-        steps {
-          withCredentials([
-            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-          ]) {
-            echo 'Start gradle build:'
-            sh 'make build'
-            echo 'Cloning gradle binaries to shared directory'
-            sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
-          }
-        }
-      }
-
       stage('JFrog Artifactory') {
         environment {
           ARTIFACTORY_URL = credentials('artifactory_url')
@@ -86,10 +71,16 @@ def call(String enzymeProject, String branchName, String buildTag) {
           ARTIFACTORY_PASSWORD = credentials('artifactory_password')
         }
         stages {
+          stage('Build, test and copy gradle binaries to shared directory') {
+            steps {
+              sh 'make build'
+              sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
+            }
+          }
+
           stage('Static code analysis') {
             steps {
               withSonarQubeEnv('sonar') {
-                echo 'Start static code analysis'
                 sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
               }
             }
@@ -101,7 +92,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
             }
             steps {
               sh 'make publish'
-              sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
+              sh "RELEASE_VERSION=${env.DOCKER_TAG} make publish"
             }
           }
         }
@@ -120,6 +111,30 @@ def call(String enzymeProject, String branchName, String buildTag) {
               sh 'make docker-login'
               sh 'make docker-build-image'
             }
+          }
+        }
+      }
+
+      stage('Prisma image scan') {
+        environment {
+          PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
+        }
+        steps {
+          container('jnlp') {
+            prismaCloudScanImage(
+              ca: '',
+              cert: '',
+              dockerAddress: 'unix:///var/run/docker.sock',
+              image: "${env.DOCKER_IMAGE}:${env.DOCKER_TAG}",
+              resultsFile: env.PRISMA_RESULT_FILE,
+              project: '',
+              ignoreImageBuildTime: true,
+              key: '',
+              logLevel: 'info',
+              podmanPath: ''
+            )
+            prismaCloudPublish(resultsFilePattern: env.PRISMA_RESULT_FILE)
+            archiveArtifacts(artifacts: env.PRISMA_RESULT_FILE, fingerprint: true)
           }
         }
       }
@@ -338,6 +353,12 @@ spec:
     volumeMounts:
     - mountPath: /shared
       name: shared
+  - name: jnlp
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: socket
   volumes:
   - name: socket
     hostPath:
