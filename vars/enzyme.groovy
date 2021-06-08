@@ -107,6 +107,23 @@ def call(String enzymeProject, String branchName, String buildTag) {
         }
       }
 
+      stage('Docker build') {
+        steps {
+          withCredentials([
+            usernamePassword(
+              credentialsId: 'GHENZYME_ARTIFACTORY_DOCKER_REGISTRY',
+              usernameVariable: 'DOCKER_USER',
+              passwordVariable: 'DOCKER_PASS',
+            ),
+          ]) {
+            container('docker') {
+              sh 'make docker-login'
+              sh 'make docker-build-image'
+            }
+          }
+        }
+      }
+
       stage('Publish docker image') {
         when {
           anyOf {
@@ -117,13 +134,12 @@ def call(String enzymeProject, String branchName, String buildTag) {
         steps {
           withCredentials([
             usernamePassword(
-              credentialsId: "GHENZYME_ARTIFACTORY_DOCKER_REGISTRY",
+              credentialsId: 'GHENZYME_ARTIFACTORY_DOCKER_REGISTRY',
               usernameVariable: 'DOCKER_USER',
               passwordVariable: 'DOCKER_PASS',
             ),
           ]) {
             container('docker') {
-              sh 'make docker-login'
               sh 'make docker-publish'
             }
           }
