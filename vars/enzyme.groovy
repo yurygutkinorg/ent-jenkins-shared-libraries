@@ -61,7 +61,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
             steps {
               sh 'gradle clean --refresh-dependencies'
               sh 'gradle build -x test --refresh-dependencies'
-              sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
+              sh "cp -rf ./_build/*/libs/* ${env.SHARED_DIR}"
             }
           }
 
