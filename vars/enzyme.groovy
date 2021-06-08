@@ -79,27 +79,30 @@ def call(String enzymeProject, String branchName, String buildTag) {
         }
       }
 
-      stage('Static code analysis') {
-        steps {
-          withSonarQubeEnv('sonar') {
-            echo 'Start static code analysis'
-            sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
+      stage('JFrog Artifactory') {
+        environment {
+          ARTIFACTORY_URL = credentials('artifactory_url')
+          ARTIFACTORY_USERNAME = credentials('artifactory_username')
+          ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+        }
+        stages {
+          stage('Static code analysis') {
+            steps {
+              withSonarQubeEnv('sonar') {
+                echo 'Start static code analysis'
+                sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
+              }
+            }
           }
-        }
-      }
 
-      stage('Publish java snapshots to artifactory') {
-        when {
-          expression { utils.verifySemVer(env.RELEASE_VERSION) }
-        }
-        steps {
-          withCredentials([
-            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-          ]) {
-            sh 'make publish'
-            sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
+          stage('Publish java snapshots') {
+            when {
+              expression { utils.verifySemVer(env.RELEASE_VERSION) }
+            }
+            steps {
+              sh 'make publish'
+              sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
+            }
           }
         }
       }
