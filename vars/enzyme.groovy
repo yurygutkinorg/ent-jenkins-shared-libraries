@@ -82,14 +82,8 @@ def call(String enzymeProject, String branchName, String buildTag) {
       stage('Static code analysis') {
         steps {
           withSonarQubeEnv('sonar') {
-            withCredentials([
-              string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-              string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-              string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-            ]) {
-              echo 'Start static code analysis'
-              sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
-            }
+            echo 'Start static code analysis'
+            sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
           }
         }
       }
