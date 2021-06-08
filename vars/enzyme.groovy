@@ -1,25 +1,22 @@
 
 def call(String enzymeProject, String branchName, String buildTag) {
-  String shortBuildTag = utils.constrainLabelToSpecifications(buildTag)
-  String releaseVersion = getReleaseVersion(enzymeProject, branchName)
-
   pipeline {
     agent {
       kubernetes {
-        label "${shortBuildTag}"
-        defaultContainer 'common-binaries'
+        label utils.constrainLabelToSpecifications(buildTag)
+        defaultContainer 'gradle'
         workspaceVolume dynamicPVC(requestsSize: '10Gi')
-        yaml getManifest()
+        yaml manifest()
       }
     }
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
       DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
-      RELEASE_VERSION         = "${releaseVersion}"
-      TARGET_ENVIRONMENT      = "dev"
+      RELEASE_VERSION         = releaseVersion(enzymeProject, branchName)
+      TARGET_ENVIRONMENT      = 'dev'
       SHARED_DIR              = "/shared/${buildTag}/"
-      SEND_SLACK_NOTIFICATION = "true"
+      SEND_SLACK_NOTIFICATION = 'true'
     }
 
     stages {
@@ -49,7 +46,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
             git(
               url: 'https://github.com/guardant/gh-aws.git',
               credentialsId: 'ghauto-github',
-              branch: "master"
+              branch: 'master'
             )
             echo 'Cloning Makefile to job workspace:'
             sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
@@ -60,25 +57,9 @@ def call(String enzymeProject, String branchName, String buildTag) {
       }
 
       stage('Metadata injection to config.properties') {
-        environment {
-          PROPERTIES_FILE_PATH = sh(script: 'find ./src/resources/config  -name config.properties', returnStdout: true).trim()
-        }
         steps {
           script {
-            if(PROPERTIES_FILE_PATH == "") {
-              error("config.properties does not exist under /src/resources/config.")
-            }
-
-            PROPERTIES_FILE_PATH.split('\n').each() {
-              sh """
-                cat <<EOF >> ${it}
-
-# BUILD METADATA
-${env.ENZYME_PROJECT}.build=${env.RELEASE_VERSION}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}
-
-EOF
-              """
-            }
+            injectMetadata(env.ENZYME_PROJECT, env.RELEASE_VERSION, env.GIT_COMMIT, env.BUILD_ID)
           }
         }
       }
@@ -90,12 +71,10 @@ EOF
             string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
             string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
           ]) {
-            container('gradle') {
-              echo 'Start gradle build:'
-              sh 'make build'
-              echo 'Cloning gradle binaries to shared directory'
-              sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
-            }
+            echo 'Start gradle build:'
+            sh 'make build'
+            echo 'Cloning gradle binaries to shared directory'
+            sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
           }
         }
       }
@@ -108,10 +87,8 @@ EOF
               string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
               string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
             ]) {
-              container('gradle') {
-                echo 'Start static code analysis'
-                sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
-              }
+              echo 'Start static code analysis'
+              sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
             }
           }
         }
@@ -119,9 +96,7 @@ EOF
 
       stage('Publish java snapshots to artifactory') {
         when {
-          allOf{
-            expression { utils.verifySemVer(env.RELEASE_VERSION) }
-          }
+          expression { utils.verifySemVer(env.RELEASE_VERSION) }
         }
         steps {
           withCredentials([
@@ -129,10 +104,8 @@ EOF
             string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
             string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
           ]) {
-            container('gradle') {
-              sh "make publish"
-              sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
-            }
+            sh 'make publish'
+            sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
           }
         }
       }
@@ -171,9 +144,8 @@ EOF
           expression { shouldTriggerDeploy(env.ENZYME_PROJECT, branchName, env.RELEASE_VERSION) }
         }
         steps {
-          echo "Service discovered"
           build(
-            job: "/deployments/argocd-update-image-tag",
+            job: '/deployments/argocd-update-image-tag',
             parameters: [
               string(name: 'APP_NAME', value: env.ENZYME_PROJECT),
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
@@ -189,7 +161,7 @@ EOF
           slack.notify(
             repositoryName: "enzyme-${env.ENZYME_PROJECT}",
             status: 'Success',
-            additionalText: "",
+            additionalText: '',
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
           )
         }
@@ -199,7 +171,7 @@ EOF
           slack.notify(
             repositoryName: "enzyme-${env.ENZYME_PROJECT}",
             status: 'Failure',
-            additionalText: "",
+            additionalText: '',
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
           )
         }
@@ -209,56 +181,82 @@ EOF
 }
 
 Boolean shouldBuildCandidate(String enzymeProject, String branchName) {
-  branchName.startsWith('candidate-') && checkIfEnzymeService(enzymeProject)
+  return branchName.startsWith('candidate-') && checkIfEnzymeService(enzymeProject)
 }
 
 Boolean shouldTriggerDeploy(String enzymeProject, String branchName, String releaseVersion) {
-  utils.verifySemVer(releaseVersion) && branchName.contains(enzymeProject) && checkIfEnzymeService(enzymeProject)
+  return (
+    utils.verifySemVer(releaseVersion) &&
+    branchName.contains(enzymeProject) &&
+    checkIfEnzymeService(enzymeProject)
+  )
 }
 
-List<String> getEnzymeAppNamesList() {
-  [
-    "auth",
-    "billing",
-    "clinical",
-    "clinical-study-report-generation",
-    "curation",
-    "exchange",
-    "file",
-    "finance",
-    "g360-reporting",
-    "g360-ps-reporting",
-    "g360-ldt-reporting",
-    "g360response-ldt-reporting",
-    "ivd-reporting",
-    "iuo-reporting",
-    "lims-data-service",
-    "message",
-    "misc",
-    "omni-reporting",
-    "omni-ldt-reporting",
-    "problem-case",
-    "lunar1-ldt-reporting",
-    "tissue-reporting",
-    "pdl1-reporting",
-    "fax"
+List<String> enzymeAppNamesList() {
+  return [
+    'auth',
+    'billing',
+    'clinical',
+    'clinical-study-report-generation',
+    'curation',
+    'exchange',
+    'file',
+    'finance',
+    'g360-reporting',
+    'g360-ps-reporting',
+    'g360-ldt-reporting',
+    'g360response-ldt-reporting',
+    'ivd-reporting',
+    'iuo-reporting',
+    'lims-data-service',
+    'message',
+    'misc',
+    'omni-reporting',
+    'omni-ldt-reporting',
+    'problem-case',
+    'lunar1-ldt-reporting',
+    'tissue-reporting',
+    'pdl1-reporting',
+    'fax'
   ]
 }
 
-String getReleaseVersion(String enzymeProject, String branchName) {
+String releaseVersion(String enzymeProject, String branchName) {
   if (branchName.startsWith('candidate-')) {
     return '99.99.99' // used for testing
   }
   List<String> splitBranch = branchName.split("${enzymeProject}-")
-  (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
+  return (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
 }
 
 Boolean checkIfEnzymeService(String serviceName) {
-  getEnzymeAppNamesList().contains(serviceName)
+  return enzymeAppNamesList().contains(serviceName)
 }
 
-String getManifest() {
-  return """
+void injectMetadata(String appName, String releaseVersion, String gitCommit, String buildId) {
+  String propertiesFilePaths = sh(
+    script: 'find ./src/resources/config  -name config.properties',
+    returnStdout: true
+  ).trim()
+
+  if (propertiesFilePaths == '') {
+    error('config.properties does not exist under /src/resources/config.')
+  }
+
+  propertiesFilePaths.split('\n').each {
+    sh """
+      cat <<EOF >> ${it}
+
+# BUILD METADATA
+${appName}.build=${releaseVersion}-${gitCommit.take(7)}-${buildId}
+
+EOF
+    """
+  }
+}
+
+String manifest() {
+  return '''
 apiVersion: v1
 kind: Pod
 metadata:
@@ -334,5 +332,5 @@ spec:
   - name: shared
     hostPath:
       path: /tmp
-"""
+'''
 }
