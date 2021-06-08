@@ -59,6 +59,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
         stages {
           stage('Build, test and copy gradle binaries to shared directory') {
             steps {
+              sh 'gradle clean --refresh-dependencies'
               sh 'gradle build -x test --refresh-dependencies'
               sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
             }
@@ -349,7 +350,9 @@ spec:
       name: shared
   - name: jnlp
     image: 'jenkins/inbound-agent:4.3-4-alpine'
-    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    args:
+    - \$(JENKINS_SECRET)
+    - \$(JENKINS_NAME)
     volumeMounts:
     - mountPath: /var/run/docker.sock
       name: socket
