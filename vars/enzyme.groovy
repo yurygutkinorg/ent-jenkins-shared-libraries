@@ -12,6 +12,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
+      DOCKER_IMAGE            = "ghi-ghenzyme.jfrog.io/enzyme-${enzymeProject}"
       DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       RELEASE_VERSION         = releaseVersion(enzymeProject, branchName)
       TARGET_ENVIRONMENT      = 'dev'
