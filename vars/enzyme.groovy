@@ -12,7 +12,8 @@ def call(String enzymeProject, String branchName, String buildTag) {
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
-      DOCKER_IMAGE            = "ghi-ghenzyme.jfrog.io/enzyme-${enzymeProject}"
+      DOCKER_REGISTRY         = 'ghi-ghenzyme.jfrog.io'
+      DOCKER_IMAGE            = "${env.DOCKER_REGISTRY}/enzyme-${enzymeProject}"
       DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       RELEASE_VERSION         = releaseVersion(enzymeProject, branchName)
       TARGET_ENVIRONMENT      = 'dev'
@@ -41,22 +42,6 @@ def call(String enzymeProject, String branchName, String buildTag) {
         }
       }
 
-      stage('Checkout gh-aws repo, move Makefile to workspace, and cleanup of gh-aws repo') {
-        steps {
-          dir('gh-aws') {
-            git(
-              url: 'https://github.com/guardant/gh-aws.git',
-              credentialsId: 'ghauto-github',
-              branch: 'master'
-            )
-            echo 'Cloning Makefile to job workspace:'
-            sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
-            echo 'Cleanup gh-aws project:'
-            deleteDir()
-          }
-        }
-      }
-
       stage('Metadata injection to config.properties') {
         steps {
           script {
@@ -74,7 +59,7 @@ def call(String enzymeProject, String branchName, String buildTag) {
         stages {
           stage('Build, test and copy gradle binaries to shared directory') {
             steps {
-              sh 'make build'
+              sh 'gradle build -x test --refresh-dependencies'
               sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
             }
           }
@@ -91,9 +76,12 @@ def call(String enzymeProject, String branchName, String buildTag) {
             when {
               expression { utils.verifySemVer(env.RELEASE_VERSION) }
             }
+            environment {
+              GUARDANTHEALTH_API = "${env.RELEASE_VERSION}"
+            }
             steps {
-              sh 'make publish'
-              sh "RELEASE_VERSION=${env.DOCKER_TAG} make publish"
+              sh 'gradle publish'
+              sh "RELEASE_VERSION=${env.DOCKER_TAG} gradle publish"
             }
           }
         }
@@ -109,8 +97,15 @@ def call(String enzymeProject, String branchName, String buildTag) {
             ),
           ]) {
             container('docker') {
-              sh 'make docker-login'
-              sh 'make docker-build-image'
+              sh "docker login ${DOCKER_REGISTRY} -u '${DOCKER_USER}' -p '${DOCKER_PASS}"
+              sh "cp ${SHARED_DIR}/* ./deployment/docker"
+              sh """
+                docker build --no-cache --pull \
+                  -f ./deployment/docker/Dockerfile \
+                  -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} \
+                  -t ${env.DOCKER_IMAGE}:${env.RELEASE_VERSION} \
+                  ./deployment/docker
+              """
             }
           }
         }
@@ -156,7 +151,9 @@ def call(String enzymeProject, String branchName, String buildTag) {
             ),
           ]) {
             container('docker') {
-              sh 'make docker-publish'
+              sh "docker login ${DOCKER_REGISTRY} -u '${DOCKER_USER}' -p '${DOCKER_PASS}"
+              sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+              sh "docker push ${env.DOCKER_IMAGE}:${env.RELEASE_VERSION}"
             }
           }
         }
@@ -306,9 +303,7 @@ spec:
       fsGroup: 1000
     image: gradle:4.10.3-alpine
     command:
-    - "sh"
-    - "-c"
-    - "apk update && apk add make && cat"
+    - cat
     tty: true
     resources:
       requests:
@@ -323,9 +318,7 @@ spec:
   - name: docker
     image: docker:18
     command:
-    - "sh"
-    - "-c"
-    - "apk update && apk add make && cat"
+    - cat
     tty: true
     resources:
       requests:
