@@ -3,7 +3,7 @@ def call(String mule_project, String build_tag) {
     "Business Apps": "BUS",
     "Enterprise Tech": "ENT",
   ]
-  def settings = libraryResource 'com/guardanthealth/settings.xml'
+  def settings = libraryResource 'com/guardanthealth/mule/settings.xml'
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
   pipeline {
     agent {

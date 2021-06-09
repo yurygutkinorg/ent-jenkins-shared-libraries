@@ -1,0 +1,158 @@
+def call(String appName, String branchName, String buildId) {
+  String mvnSettingsFile = 'settings.xml'
+
+  pipeline {
+    agent {
+      kubernetes {
+        label "${appName}-${branchName}"
+        defaultContainer 'maven'
+        workspaceVolume dynamicPVC(requestsSize: '10Gi')
+        yaml manifest()
+      }
+    }
+
+    parameters {
+      booleanParam(name: 'PUBLISH', defaultValue: false, description: 'Publishes docker image to registry')
+    }
+
+    environment {
+      DOCKER_REGISTRY_ADDR = 'ghi-ghportal.jfrog.io'
+      DOCKER_IMAGE = "${DOCKER_REGISTRY_ADDR}/${appName}"
+      DOCKER_TAG = "${branchName}-${env.GIT_COMMIT.take(7)}-${buildId}"
+
+      SEND_SLACK_NOTIFICATION = 'true'
+    }
+
+    stages {
+      stage('Set build name') {
+        steps {
+          script {
+            currentBuild.displayName = env.DOCKER_TAG
+          }
+        }
+      }
+
+      stage('Write maven settings to the workspace') {
+        steps {
+          script {
+            writeFile(
+              file: mvnSettingsFile,
+              text: libraryResource('com/guardanthealth/portalnextgen/settings.xml')
+            )
+          }
+        }
+      }
+
+      stage('Maven build') {
+        environment {
+          ARTIFACTORY_USERNAME = '_gradle-publisher'
+          ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+        }
+        steps {
+          withMaven(mavenSettingsFilePath: mvnSettingsFile) {
+            sh 'mvn clean package'
+          }
+        }
+      }
+
+      stage('Docker build') {
+        steps {
+          container('docker') {
+            sh "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -f ./deployment/docker/Dockerfile ."
+          }
+        }
+      }
+
+      stage('Docker publish') {
+        when {
+          anyOf {
+            branch 'master'
+            expression { params.PUBLISH == true }
+          }
+        }
+        steps {
+         withCredentials([
+            usernamePassword(
+              credentialsId: 'artifactory_ghportal_credentials',
+              usernameVariable: 'DOCKER_USER',
+              passwordVariable: 'DOCKER_PASS',
+            ),
+          ]) {
+            container('docker') {
+              sh 'docker login $DOCKER_REGISTRY_ADDR -u $DOCKER_USER -p $DOCKER_PASS'
+              sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+            }
+          }
+        }
+      }
+    }
+
+    post {
+      success {
+        script {
+          slack.notify(
+            repositoryName: appName,
+            status: 'Success',
+            additionalText: '',
+            sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
+          )
+        }
+      }
+      failure {
+        script {
+          slack.notify(
+            repositoryName: appName,
+            status: 'Failure',
+            additionalText: '',
+            sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
+          )
+        }
+      }
+    }
+  }
+}
+
+String manifest() {
+  return '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins-agent.k8s.ghdna.io: portal-next-gen
+spec:
+  securityContext:
+    runAsUser: 0
+  containers:
+  - name: maven
+    image: maven:3-openjdk-11
+    command:
+    - cat
+    tty: true
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  - name: docker
+    image: docker:18
+    command:
+    - cat
+    tty: true
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: socket
+  volumes:
+  - name: socket
+    hostPath:
+      path: /var/run/docker.sock
+'''
+}
