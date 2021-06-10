@@ -241,7 +241,8 @@ List<String> getEnzymeAppNamesList() {
     "lunar1-ldt-reporting",
     "tissue-reporting",
     "pdl1-reporting",
-    "fax"
+    "fax",
+    "mrd-order-scheduler"
   ]
 }
 
