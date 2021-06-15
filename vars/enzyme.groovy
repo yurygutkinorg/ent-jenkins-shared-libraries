@@ -219,34 +219,6 @@ Boolean shouldTriggerDeploy(String enzymeProject, String branchName, String rele
   )
 }
 
-<<<<<<< HEAD
-List<String> enzymeAppNamesList() {
-  return [
-    'auth',
-    'billing',
-    'clinical',
-    'clinical-study-report-generation',
-    'curation',
-    'exchange',
-    'file',
-    'finance',
-    'g360-reporting',
-    'g360-ps-reporting',
-    'g360-ldt-reporting',
-    'g360response-ldt-reporting',
-    'ivd-reporting',
-    'iuo-reporting',
-    'lims-data-service',
-    'message',
-    'misc',
-    'omni-reporting',
-    'omni-ldt-reporting',
-    'problem-case',
-    'lunar1-ldt-reporting',
-    'tissue-reporting',
-    'pdl1-reporting',
-    'fax'
-=======
 List<String> getEnzymeAppNamesList() {
   [
     "auth",
@@ -274,7 +246,6 @@ List<String> getEnzymeAppNamesList() {
     "pdl1-reporting",
     "fax",
     "mrd-order-scheduler"
->>>>>>> origin/master
   ]
 }
 
