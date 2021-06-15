@@ -1,5 +1,3 @@
-# Shared libraries for Jenkins
-
 ## Mulesoft pipeline
 
 The contents of `vars/mule.groovy` contain a Mulesoft pipeline customized for use with the company Mulesoft Anypoint platform and Artifactory.

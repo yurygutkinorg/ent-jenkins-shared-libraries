@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd" xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <servers>
+    <server>
+      <id>central</id>
+      <username><![CDATA[${env.ARTIFACTORY_USERNAME}]]></username>
+      <password><![CDATA[${env.ARTIFACTORY_PASSWORD}]]></password>
+    </server>
+    <server>
+      <id>snapshots</id>
+      <username><![CDATA[${env.ARTIFACTORY_USERNAME}]]></username>
+      <password><![CDATA[${env.ARTIFACTORY_PASSWORD}]]></password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <repositories>
+        <repository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>central</id>
+          <name>ghdata-release</name>
+          <url>https://ghi.jfrog.io/artifactory/ghdata-release</url>
+        </repository>
+        <repository>
+          <snapshots />
+          <id>snapshots</id>
+          <name>ghdata-snapshot</name>
+          <url>https://ghi.jfrog.io/artifactory/ghdata-snapshot</url>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>central</id>
+          <name>ghdata-release</name>
+          <url>https://ghi.jfrog.io/artifactory/ghdata-release</url>
+        </pluginRepository>
+        <pluginRepository>
+          <snapshots />
+          <id>snapshots</id>
+          <name>ghdata-snapshot</name>
+          <url>https://ghi.jfrog.io/artifactory/ghdata-snapshot</url>
+        </pluginRepository>
+      </pluginRepositories>
+      <id>artifactory</id>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>artifactory</activeProfile>
+  </activeProfiles>
+</settings>
