@@ -1,25 +1,25 @@
+#!groovy
 
-def call(String enzymeProject, String branchName, String buildTag) {
-  String shortBuildTag = utils.constrainLabelToSpecifications(buildTag)
-  String releaseVersion = getReleaseVersion(enzymeProject, branchName)
-
+def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
   pipeline {
     agent {
       kubernetes {
-        label "${shortBuildTag}"
-        defaultContainer 'common-binaries'
+        label utils.constrainLabelToSpecifications(env.BUILD_ID)
+        defaultContainer 'gradle'
         workspaceVolume dynamicPVC(requestsSize: '10Gi')
-        yaml getManifest()
+        yaml manifest()
       }
     }
 
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
-      DOCKER_TAG              = "${branchName}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
-      RELEASE_VERSION         = "${releaseVersion}"
-      TARGET_ENVIRONMENT      = "dev"
-      SHARED_DIR              = "/shared/${buildTag}/"
-      SEND_SLACK_NOTIFICATION = "true"
+      DOCKER_REGISTRY         = 'ghi-ghenzyme.jfrog.io'
+      DOCKER_IMAGE            = "${env.DOCKER_REGISTRY}/enzyme-${enzymeProject}"
+      DOCKER_TAG              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
+      RELEASE_VERSION         = releaseVersion(enzymeProject, env.BRANCH_NAME)
+      TARGET_ENVIRONMENT      = 'dev'
+      SHARED_DIR              = "/shared/${env.BUILD_ID}/"
+      SEND_SLACK_NOTIFICATION = 'true'
     }
 
     stages {
@@ -43,95 +43,74 @@ def call(String enzymeProject, String branchName, String buildTag) {
         }
       }
 
-      stage('Checkout gh-aws repo, move Makefile to workspace, and cleanup of gh-aws repo') {
-        steps {
-          dir('gh-aws') {
-            git(
-              url: 'https://github.com/guardant/gh-aws.git',
-              credentialsId: 'ghauto-github',
-              branch: "master"
-            )
-            echo 'Cloning Makefile to job workspace:'
-            sh "cp ./deployment-scripts/enzyme/Makefile ${env.WORKSPACE}"
-            echo 'Cleanup gh-aws project:'
-            deleteDir()
-          }
-        }
-      }
-
       stage('Metadata injection to config.properties') {
-        environment {
-          PROPERTIES_FILE_PATH = sh(script: 'find ./src/resources/config  -name config.properties', returnStdout: true).trim()
-        }
         steps {
           script {
-            if(PROPERTIES_FILE_PATH == "") {
-              error("config.properties does not exist under /src/resources/config.")
-            }
-
-            PROPERTIES_FILE_PATH.split('\n').each() {
-              sh """
-                cat <<EOF >> ${it}
-
-# BUILD METADATA
-${env.ENZYME_PROJECT}.build=${env.RELEASE_VERSION}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}
-
-EOF
-              """
-            }
+            injectMetadata(env.ENZYME_PROJECT, env.RELEASE_VERSION, env.GIT_COMMIT, env.BUILD_ID)
           }
         }
       }
 
-      stage('Build, test and copy gradle binaries to shared directory') {
-        steps {
-          withCredentials([
-            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-          ]) {
-            container('gradle') {
-              echo 'Start gradle build:'
-              sh 'make build'
-              echo 'Cloning gradle binaries to shared directory'
-              sh "cp ./_build/*/libs/* ${env.SHARED_DIR}"
+      stage('JFrog Artifactory') {
+        environment {
+          ARTIFACTORY_URL = 'https://ghi.jfrog.io/ghi/ghdna-release/'
+          ARTIFACTORY_USERNAME = '_gradle-publisher'
+          ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+        }
+        stages {
+          stage('Build, test and copy gradle binaries to shared directory') {
+            steps {
+              sh 'gradle clean --refresh-dependencies'
+              sh 'gradle build -x test --refresh-dependencies'
+              sh "cp -rf ./_build/*/libs/* ${env.SHARED_DIR}"
             }
           }
-        }
-      }
 
-      stage('Static code analysis') {
-        steps {
-          withSonarQubeEnv('sonar') {
-            withCredentials([
-              string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-              string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-              string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
-            ]) {
-              container('gradle') {
-                echo 'Start static code analysis'
+          stage('Static code analysis') {
+            steps {
+              withSonarQubeEnv('sonar') {
                 sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
               }
             }
+            post {
+              always {
+                archiveArtifacts(artifacts: "_build/**/*.html", fingerprint: true)
+              }
+            }
+          }
+
+          stage('Publish java snapshots') {
+            when { expression { utils.verifySemVer(env.RELEASE_VERSION) } }
+            environment {
+              GUARDANTHEALTH_API = "${env.RELEASE_VERSION}"
+            }
+            steps {
+              sh 'gradle publish'
+              sh "RELEASE_VERSION=${env.DOCKER_TAG} gradle publish"
+            }
           }
         }
       }
 
-      stage('Publish java snapshots to artifactory') {
-        when {
-          allOf{
-            expression { utils.verifySemVer(env.RELEASE_VERSION) }
-          }
-        }
+      stage('Docker build') {
         steps {
           withCredentials([
-            string(credentialsId: 'artifactory_url', variable: 'ARTIFACTORY_URL'),
-            string(credentialsId: 'artifactory_username', variable: 'ARTIFACTORY_USERNAME'),
-            string(credentialsId: 'artifactory_password', variable: 'ARTIFACTORY_PASSWORD')
+            usernamePassword(
+              credentialsId: 'GHENZYME_ARTIFACTORY_DOCKER_REGISTRY',
+              usernameVariable: 'DOCKER_USER',
+              passwordVariable: 'DOCKER_PASS',
+            ),
           ]) {
-            container('gradle') {
-              sh "make publish"
-              sh "RELEASE_VERSION=${DOCKER_TAG} make publish"
+            container('docker') {
+              sh 'docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASS}'
+              sh "cp ${SHARED_DIR}/* ./deployment/docker"
+              sh """
+                docker build --no-cache --pull \
+                  -f ./deployment/docker/Dockerfile \
+                  -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} \
+                  -t ${env.DOCKER_IMAGE}:${env.RELEASE_VERSION} \
+                  ./deployment/docker
+              """
             }
           }
         }
@@ -140,40 +119,40 @@ EOF
       stage('Publish docker image') {
         when {
           anyOf {
-            expression { shouldTriggerDeploy(env.ENZYME_PROJECT, branchName, env.RELEASE_VERSION) }
-            expression { shouldBuildCandidate(env.ENZYME_PROJECT, branchName) } // used for testing
+            expression { shouldTriggerDeploy(env.ENZYME_PROJECT, env.BRANCH_NAME, env.RELEASE_VERSION) }
+            expression { shouldBuildCandidate(env.ENZYME_PROJECT, env.BRANCH_NAME) } // used for testing
           }
         }
         steps {
           withCredentials([
             usernamePassword(
-              credentialsId: "GHENZYME_ARTIFACTORY_DOCKER_REGISTRY",
+              credentialsId: 'GHENZYME_ARTIFACTORY_DOCKER_REGISTRY',
               usernameVariable: 'DOCKER_USER',
               passwordVariable: 'DOCKER_PASS',
             ),
           ]) {
             container('docker') {
-              sh 'make docker-login'
-              sh 'make docker-publish'
+              sh 'docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASS}'
+              sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+              sh "docker push ${env.DOCKER_IMAGE}:${env.RELEASE_VERSION}"
             }
           }
         }
         post {
           success {
             sh "echo '${env.DOCKER_TAG}' > docker_image_tag.txt"
-            archiveArtifacts artifacts: 'docker_image_tag.txt', fingerprint: true
+            archiveArtifacts(artifacts: 'docker_image_tag.txt', fingerprint: true)
           }
         }
       }
 
       stage('Trigger enzyme deployment job') {
         when {
-          expression { shouldTriggerDeploy(env.ENZYME_PROJECT, branchName, env.RELEASE_VERSION) }
+          expression { shouldTriggerDeploy(env.ENZYME_PROJECT, env.BRANCH_NAME, env.RELEASE_VERSION) }
         }
         steps {
-          echo "Service discovered"
           build(
-            job: "/deployments/argocd-update-image-tag",
+            job: '/deployments/argocd-update-image-tag',
             parameters: [
               string(name: 'APP_NAME', value: env.ENZYME_PROJECT),
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
@@ -189,7 +168,7 @@ EOF
           slack.notify(
             repositoryName: "enzyme-${env.ENZYME_PROJECT}",
             status: 'Success',
-            additionalText: "",
+            additionalText: '',
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
           )
         }
@@ -199,7 +178,7 @@ EOF
           slack.notify(
             repositoryName: "enzyme-${env.ENZYME_PROJECT}",
             status: 'Failure',
-            additionalText: "",
+            additionalText: '',
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
           )
         }
@@ -209,11 +188,15 @@ EOF
 }
 
 Boolean shouldBuildCandidate(String enzymeProject, String branchName) {
-  branchName.startsWith('candidate-') && checkIfEnzymeService(enzymeProject)
+  return branchName.startsWith('candidate-') && checkIfEnzymeService(enzymeProject)
 }
 
 Boolean shouldTriggerDeploy(String enzymeProject, String branchName, String releaseVersion) {
-  utils.verifySemVer(releaseVersion) && branchName.contains(enzymeProject) && checkIfEnzymeService(enzymeProject)
+  return (
+    utils.verifySemVer(releaseVersion) &&
+    branchName.contains(enzymeProject) &&
+    checkIfEnzymeService(enzymeProject)
+  )
 }
 
 List<String> getEnzymeAppNamesList() {
@@ -246,20 +229,42 @@ List<String> getEnzymeAppNamesList() {
   ]
 }
 
-String getReleaseVersion(String enzymeProject, String branchName) {
+String releaseVersion(String enzymeProject, String branchName) {
   if (branchName.startsWith('candidate-')) {
     return '99.99.99' // used for testing
   }
   List<String> splitBranch = branchName.split("${enzymeProject}-")
-  (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
+  return (splitBranch.size() == 2) ? splitBranch[1].trim() : 'none'
 }
 
 Boolean checkIfEnzymeService(String serviceName) {
-  getEnzymeAppNamesList().contains(serviceName)
+  return enzymeAppNamesList().contains(serviceName)
 }
 
-String getManifest() {
-  return """
+void injectMetadata(String appName, String releaseVersion, String gitCommit, String buildId) {
+  String propertiesFilePaths = sh(
+    script: 'find ./src/resources/config  -name config.properties',
+    returnStdout: true
+  ).trim()
+
+  if (propertiesFilePaths == '') {
+    error('config.properties does not exist under /src/resources/config.')
+  }
+
+  propertiesFilePaths.split('\n').each {
+    sh """
+      cat <<EOF >> ${it}
+
+# BUILD METADATA
+${appName}.build=${releaseVersion}-${gitCommit.take(7)}-${buildId}
+
+EOF
+    """
+  }
+}
+
+String manifest() {
+  return '''
 apiVersion: v1
 kind: Pod
 metadata:
@@ -280,9 +285,7 @@ spec:
       fsGroup: 1000
     image: gradle:4.10.3-alpine
     command:
-    - "sh"
-    - "-c"
-    - "apk update && apk add make && cat"
+    - cat
     tty: true
     resources:
       requests:
@@ -297,9 +300,7 @@ spec:
   - name: docker
     image: docker:18
     command:
-    - "sh"
-    - "-c"
-    - "apk update && apk add make && cat"
+    - cat
     tty: true
     resources:
       requests:
@@ -313,21 +314,6 @@ spec:
       name: socket
     - mountPath: /shared
       name: shared
-  - name: common-binaries
-    image: ghi-ghinfra.jfrog.io/common-binaries:057fc8f9
-    command:
-    - cat
-    tty: true
-    resources:
-      requests:
-        memory: "512Mi"
-        cpu: "100m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
-    volumeMounts:
-    - mountPath: /shared
-      name: shared
   volumes:
   - name: socket
     hostPath:
@@ -335,5 +321,5 @@ spec:
   - name: shared
     hostPath:
       path: /tmp
-"""
+'''
 }

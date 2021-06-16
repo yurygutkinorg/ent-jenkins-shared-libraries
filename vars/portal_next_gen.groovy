@@ -1,10 +1,12 @@
-def call(String appName, String branchName, String buildId) {
+#!groovy
+
+def call(String appName) {
   String mvnSettingsFile = 'settings.xml'
 
   pipeline {
     agent {
       kubernetes {
-        label "${appName}-${branchName}"
+        label "${appName}-${env.BRANCH_NAME}"
         defaultContainer 'maven'
         workspaceVolume dynamicPVC(requestsSize: '10Gi')
         yaml manifest()
@@ -18,7 +20,7 @@ def call(String appName, String branchName, String buildId) {
     environment {
       DOCKER_REGISTRY_ADDR = 'ghi-ghportal.jfrog.io'
       DOCKER_IMAGE = "${DOCKER_REGISTRY_ADDR}/${appName}"
-      DOCKER_TAG = "${branchName}-${env.GIT_COMMIT.take(7)}-${buildId}"
+      DOCKER_TAG = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       TARGET_ENVIRONMENT = 'dev'
       SEND_SLACK_NOTIFICATION = 'true'
     }
