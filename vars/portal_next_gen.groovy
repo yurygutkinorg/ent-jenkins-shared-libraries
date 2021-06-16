@@ -19,7 +19,7 @@ def call(String appName, String branchName, String buildId) {
       DOCKER_REGISTRY_ADDR = 'ghi-ghportal.jfrog.io'
       DOCKER_IMAGE = "${DOCKER_REGISTRY_ADDR}/${appName}"
       DOCKER_TAG = "${branchName}-${env.GIT_COMMIT.take(7)}-${buildId}"
-
+      TARGET_ENVIRONMENT = 'dev'
       SEND_SLACK_NOTIFICATION = 'true'
     }
 
@@ -83,6 +83,20 @@ def call(String appName, String branchName, String buildId) {
               sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
             }
           }
+        }
+      }
+
+      stage('Trigger deployment job') {
+        when { branch 'master' }
+        steps {
+          build(
+            job: "/deployments/argocd-update-image-tag",
+            parameters: [
+              string(name: 'APP_NAME', value: appName),
+              string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
+              string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
+            ], quietPeriod: 2
+          )
         }
       }
     }
