@@ -4,7 +4,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
   pipeline {
     agent {
       kubernetes {
-        label utils.constrainLabelToSpecifications(env.BUILD_ID)
+        label utils.constrainLabelToSpecifications(enzymeProject + '-' + env.BUILD_ID)
         defaultContainer 'gradle'
         workspaceVolume dynamicPVC(requestsSize: '10Gi')
         yaml manifest()
