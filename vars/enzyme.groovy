@@ -103,7 +103,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
           ]) {
             container('docker') {
               sh 'docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASS}'
-              sh "cp ${SHARED_DIR}/* ./deployment/docker"
+              sh "cp ${SHARED_DIR}* ./deployment/docker"
               sh """
                 docker build --no-cache --pull \
                   -f ./deployment/docker/Dockerfile \
