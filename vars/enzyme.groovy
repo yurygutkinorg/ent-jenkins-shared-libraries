@@ -18,7 +18,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       DOCKER_TAG              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       RELEASE_VERSION         = releaseVersion(enzymeProject, env.BRANCH_NAME)
       TARGET_ENVIRONMENT      = 'dev'
-      SHARED_DIR              = "/shared/${env.BUILD_ID}/"
+      SHARED_DIR              = "/shared/${enzymeProject}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}/"
       SEND_SLACK_NOTIFICATION = 'true'
     }
 
