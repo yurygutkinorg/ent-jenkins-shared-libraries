@@ -18,7 +18,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       DOCKER_TAG              = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       RELEASE_VERSION         = releaseVersion(enzymeProject, env.BRANCH_NAME)
       TARGET_ENVIRONMENT      = 'dev'
-      SHARED_DIR              = "/shared/${enzymeProject}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}/"
+      SHARED_DIR              = "/shared/${enzymeProject}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       SEND_SLACK_NOTIFICATION = 'true'
     }
 
@@ -93,6 +93,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       }
 
       stage('Docker build') {
+        when { expression { checkIfEnzymeService(env.ENZYME_PROJECT) } }
         steps {
           withCredentials([
             usernamePassword(
@@ -103,7 +104,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
           ]) {
             container('docker') {
               sh 'docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASS}'
-              sh "cp ${SHARED_DIR}* ./deployment/docker"
+              sh "cp ${SHARED_DIR}/* ./deployment/docker"
               sh """
                 docker build --no-cache --pull \
                   -f ./deployment/docker/Dockerfile \
@@ -117,6 +118,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       }
 
       stage('Prisma image scan') {
+        when { expression { checkIfEnzymeService(env.ENZYME_PROJECT) } }
         environment {
           PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
         }
@@ -223,8 +225,8 @@ Boolean shouldTriggerDeploy(String enzymeProject, String branchName, String rele
   )
 }
 
-List<String> getEnzymeAppNamesList() {
-  [
+List<String> enzymeAppNamesList() {
+  return [
     "auth",
     "billing",
     "clinical",
