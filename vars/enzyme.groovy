@@ -69,7 +69,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
           stage('Static code analysis') {
             steps {
               withSonarQubeEnv('sonar') {
-                sh 'gradle --info sonarqube --debug --stacktrace --no-daemon'
+                sh 'gradle --info sonarqube --stacktrace --no-daemon'
               }
             }
             post {
@@ -112,6 +112,30 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                   ./deployment/docker
               """
             }
+          }
+        }
+      }
+
+      stage('Prisma image scan') {
+        environment {
+          PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
+        }
+        steps {
+          container('jnlp') {
+            prismaCloudScanImage(
+              ca: '',
+              cert: '',
+              dockerAddress: 'unix:///var/run/docker.sock',
+              image: "${env.DOCKER_IMAGE}:${env.DOCKER_TAG}",
+              resultsFile: env.PRISMA_RESULT_FILE,
+              project: '',
+              ignoreImageBuildTime: true,
+              key: '',
+              logLevel: 'info',
+              podmanPath: ''
+            )
+            prismaCloudPublish(resultsFilePattern: env.PRISMA_RESULT_FILE)
+            archiveArtifacts(artifacts: env.PRISMA_RESULT_FILE, fingerprint: true)
           }
         }
       }
@@ -314,6 +338,14 @@ spec:
       name: socket
     - mountPath: /shared
       name: shared
+  - name: jnlp
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
+    args:
+    - \$(JENKINS_SECRET)
+    - \$(JENKINS_NAME)
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: socket
   volumes:
   - name: socket
     hostPath:
