@@ -65,6 +65,30 @@ def call(String appName) {
         }
       }
 
+      stage('Prisma image scan') {
+        environment {
+          PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
+        }
+        steps {
+          container('jnlp') {
+            prismaCloudScanImage(
+              ca: '',
+              cert: '',
+              dockerAddress: 'unix:///var/run/docker.sock',
+              image: "${env.DOCKER_IMAGE}:${env.DOCKER_TAG}",
+              resultsFile: env.PRISMA_RESULT_FILE,
+              project: '',
+              ignoreImageBuildTime: true,
+              key: '',
+              logLevel: 'info',
+              podmanPath: ''
+            )
+            prismaCloudPublish(resultsFilePattern: env.PRISMA_RESULT_FILE)
+            archiveArtifacts(artifacts: env.PRISMA_RESULT_FILE, fingerprint: true)
+          }
+        }
+      }
+
       stage('Docker publish') {
         when {
           anyOf {
@@ -163,6 +187,14 @@ spec:
       limits:
         memory: "512Mi"
         cpu: "500m"
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: socket
+  - name: jnlp
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
+    args:
+    - \$(JENKINS_SECRET)
+    - \$(JENKINS_NAME)
     volumeMounts:
     - mountPath: /var/run/docker.sock
       name: socket
