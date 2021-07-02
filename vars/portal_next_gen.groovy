@@ -4,6 +4,15 @@ def call(String appName) {
   String mvnSettingsFile = 'settings.xml'
 
   pipeline {
+    options {
+      buildDiscarder(logRotator(
+        numToKeepStr: '10',
+        daysToKeepStr: '30',
+        artifactNumToKeepStr: '5',
+        artifactDaysToKeepStr: '15'
+      ))
+    }
+
     agent {
       kubernetes {
         label "${appName}-${env.BRANCH_NAME}"

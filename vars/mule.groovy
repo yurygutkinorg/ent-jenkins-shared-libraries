@@ -3,9 +3,21 @@ def call(String mule_project, String build_tag) {
     "Business Apps": "BUS",
     "Enterprise Tech": "ENT",
   ]
+
   def settings = libraryResource 'com/guardanthealth/mule/settings.xml'
+
   String short_build_tag = utils.constrainLabelToSpecifications(build_tag)
+
   pipeline {
+    options {
+      buildDiscarder(logRotator(
+        numToKeepStr: '10',
+        daysToKeepStr: '30',
+        artifactNumToKeepStr: '5',
+        artifactDaysToKeepStr: '15'
+      ))
+    }
+
     agent {
       kubernetes {
         label "${short_build_tag}"

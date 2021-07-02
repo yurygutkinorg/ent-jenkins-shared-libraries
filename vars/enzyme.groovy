@@ -2,6 +2,15 @@
 
 def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
   pipeline {
+    options {
+      buildDiscarder(logRotator(
+        numToKeepStr: '10',
+        daysToKeepStr: '30',
+        artifactNumToKeepStr: '5',
+        artifactDaysToKeepStr: '15'
+      ))
+    }
+
     agent {
       kubernetes {
         label utils.constrainLabelToSpecifications(enzymeProject + '-' + env.BUILD_ID)
