@@ -1,3 +1,34 @@
+#!groovy
+
+void clone(String portalRepo, String parentBranch, String gitCredentialsId) {
+  String repoAddr = "github.com/guardant/${portalRepo}"
+
+  // Selects dependency branch based on its existence in dependency repo
+  String selectedBranch = selectBranch(parentBranch, repoAddr, gitCredentialsId)
+
+  dir (portalRepo) {
+    git(url: "https://${repoAddr}", credentialsId: gitCredentialsId, branch: selectedBranch)
+  }
+}
+
+String selectBranch(branchName, repoAddr, gitCredentialsId) {
+  Boolean branchExists = utils.branchExists(branchName, repoAddr, gitCredentialsId)
+  if (branchExists) {
+    branchName
+  } else if (branchName.startsWith('release-')) {
+    error("Release branch for dependency '${repoAddr}' doesn't exist")
+  } else {
+    'master'
+  }
+}
+
+// !!!
+
+// DEPRECATION WARNING !!!
+// Everting below this line is no longer used and can be removed.
+
+// !!!
+
 // Temporary hack for helm migration to version 3
 String get_helm_bin() {
   return (env.ENVIRONMENT == 'prod') ? 'helm' : 'helm3'
@@ -327,26 +358,4 @@ String get_auth_token(username, password, url) {
     """,
     returnStdout: true
   ).trim()
-}
-
-void clone(String portalRepo, String parentBranch, String gitCredentialsId) {
-  String repoAddr = "github.com/guardant/${portalRepo}"
-
-  // Selects dependency branch based on its existence in dependency repo
-  String selectedBranch = selectBranch(parentBranch, repoAddr, gitCredentialsId)
-
-  dir (portalRepo) {
-    git(url: "https://${repoAddr}", credentialsId: gitCredentialsId, branch: selectedBranch)
-  }
-}
-
-String selectBranch(branchName, repoAddr, gitCredentialsId) {
-  Boolean branchExists = utils.branchExists(branchName, repoAddr, gitCredentialsId)
-  if (branchExists) {
-    branchName
-  } else if (branchName.startsWith('release-')) {
-    error("Release branch for dependency '${repoAddr}' doesn't exist")
-  } else {
-    'master'
-  }
 }
