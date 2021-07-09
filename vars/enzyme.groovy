@@ -20,6 +20,10 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       }
     }
 
+    parameters {
+      booleanParam(name: 'ENABLE_PRISMA_SCAN', defaultValue: false, description: 'Enables scanning of docker image')
+    }
+
     environment {
       ENZYME_PROJECT          = "${enzymeProject}"
       DOCKER_REGISTRY         = 'ghi-ghenzyme.jfrog.io'
@@ -127,7 +131,12 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
       }
 
       stage('Prisma image scan') {
-        when { expression { checkIfEnzymeService(env.ENZYME_PROJECT) } }
+        when {
+          allOf {
+            expression { params.ENABLE_PRISMA_SCAN == true }
+            expression { checkIfEnzymeService(env.ENZYME_PROJECT) }
+          }
+        }
         environment {
           PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
         }
