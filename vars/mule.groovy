@@ -174,7 +174,7 @@ def call(String mule_project, String build_tag) {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean
-                    mvn sonar:sonar -Dsonar.login=bde670e0ff6b3e1c8d1e54abf08d7f5d9a9b96a8
+                    mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar
                   """
                 }
               }
@@ -183,6 +183,17 @@ def call(String mule_project, String build_tag) {
         }
       }
     
+      stage("Quality Gate") {
+        steps {
+          withSonarQubeEnv('sonar') {
+            timeout(activity: true, time: 45, unit: 'SECONDS') {
+              sleep 3
+              waitForQualityGate abortPipeline: true
+            }
+          }
+        }
+      }
+
       stage('Run tests') {
         steps {
           container('maven') {
