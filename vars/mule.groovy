@@ -174,11 +174,18 @@ def call(String mule_project, String build_tag) {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean
-                    mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar
                   """
                 }
               }
             }
+          }
+        }
+      }
+
+      stage('SonarQube analysis') {
+        steps {
+          withSonarQubeEnv('sonar') {
+          sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar'
           }
         }
       }
