@@ -174,6 +174,7 @@ def call(String mule_project, String build_tag) {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean
+                    mvn clean verify sonar:sonar -Dsonar.host.url=https://sonarqube.k8s.ghdna.io
                   """
                 }
               }
