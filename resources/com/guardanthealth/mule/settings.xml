@@ -35,8 +35,8 @@
                         <enabled>true</enabled>
                     </snapshots>
                 </repository>
+                </repositories>
         </profile>
-            </repositories>
         <profile>
             <id>sonar</id>
             <activation>
