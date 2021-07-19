@@ -45,7 +45,11 @@
             <properties>
             <sonar.host.url>https://sonarqube.k8s.ghdna.io</sonar.host.url>
             <sonar.login>bde670e0ff6b3e1c8d1e54abf08d7f5d9a9b96a8</sonar.login>
+            <sonar.sources>src/main/mule,src/main/resources,pom.xml</sonar.sources>
             </properties>
+            <activeProfiles>
+            <activeProfile>sonar</activeProfile>
+            </activeProfiles>
         </profile>
         </profiles>
 </settings>
