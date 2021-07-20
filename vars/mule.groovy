@@ -182,31 +182,6 @@ def call(String mule_project, String build_tag) {
         }
       }
 
-      stage('SonarQube analysis') {
-        steps {
-          container('maven') {
-            withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-              withSonarQubeEnv('sonar') {
-                withMaven(mavenSettingsFilePath: 'settings.xml') {
-              sh 'mvn clean install  sonar:sonar'
-                }
-              }
-            }
-          }
-        }
-      }
-    
-      stage("Quality Gate") {
-        steps {
-          withSonarQubeEnv('sonar') {
-            timeout(activity: true, time: 300, unit: 'SECONDS') {
-              sleep 3
-              waitForQualityGate abortPipeline: true
-            }
-          }
-        }
-      }
-
       stage('Run tests') {
         steps {
           container('maven') {
@@ -230,6 +205,31 @@ def call(String mule_project, String build_tag) {
                   """
                 }
               }
+            }
+          }
+        }
+      }
+
+      stage('SonarQube analysis') {
+        steps {
+          container('maven') {
+            withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+              withSonarQubeEnv('sonar') {
+                withMaven(mavenSettingsFilePath: 'settings.xml') {
+              sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar'
+                }
+              }
+            }
+          }
+        }
+      }
+    
+      stage("Quality Gate") {
+        steps {
+          withSonarQubeEnv('sonar') {
+            timeout(activity: true, time: 300, unit: 'SECONDS') {
+              sleep 3
+              waitForQualityGate abortPipeline: true
             }
           }
         }
