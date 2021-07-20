@@ -188,7 +188,7 @@ def call(String mule_project, String build_tag) {
             withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
               withSonarQubeEnv('sonar') {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
-              sh 'mvn sonar:sonar'
+              sh 'mvn clean install  sonar:sonar'
                 }
               }
             }
