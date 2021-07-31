@@ -43,7 +43,7 @@
                <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-            <sonar.host.url>https://sonarqube.k8s.ghdna.io</sonar.host.url>
+            <sonar.host.url>https://sonarqube-dev.k8s.ghdna.io</sonar.host.url>
             </properties>
         </profile>
         </profiles>
