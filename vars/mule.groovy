@@ -224,7 +224,6 @@ def call(String mule_project, String build_tag) {
               }
           }
         }
-      }
     
     
       stage('Build and upload to Artifactory') {
