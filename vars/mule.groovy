@@ -214,7 +214,7 @@ def call(String mule_project, String build_tag) {
         steps {
           container('maven') {
             withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
-              withSonarQubeEnv('sonar-non-prod') {
+              withSonarQubeEnv('sonar') {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
               sh 'mvn sonar:sonar'
                 }
@@ -226,7 +226,7 @@ def call(String mule_project, String build_tag) {
     
       stage("Quality Gate") {
         steps {
-          withSonarQubeEnv('sonar-non-prod') {
+          withSonarQubeEnv('sonar') {
             timeout(activity: true, time: 300, unit: 'SECONDS') {
               sleep 3
               waitForQualityGate abortPipeline: true
