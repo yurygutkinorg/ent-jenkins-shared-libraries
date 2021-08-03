@@ -216,6 +216,7 @@ def call(String mule_project, String build_tag) {
             withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
               withSonarQubeEnv('sonar-non-prod') {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
+              sh 'mvn findbugs:findbugs'
               sh 'mvn sonar:sonar'
                 }
             }
