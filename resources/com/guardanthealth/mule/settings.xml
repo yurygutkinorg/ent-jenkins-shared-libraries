@@ -37,5 +37,14 @@
                 </repository>
                 </repositories>
         </profile>
+        <profile>
+            <id>sonar</id>
+            <activation>
+               <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+            <sonar.host.url>https://sonarqube-dev.k8s.ghdna.io</sonar.host.url>
+            </properties>
+        </profile>
         </profiles>
 </settings>

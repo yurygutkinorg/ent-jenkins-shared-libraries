@@ -214,17 +214,26 @@ def call(String mule_project, String build_tag) {
         steps {
           container('maven') {
             withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
+              withSonarQubeEnv('sonar-non-prod') {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
-              sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar \
-              -Dsonar.projectKey=guardant_biz-erp-customer-sys-api \
-              -Dsonar.host.url=https://sonarqube-dev.k8s.ghdna.io \
-              -Dsonar.login=c67b1f17336d1f5e1ec318f54b7d7c4ed0bb64f2'
+              sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar'
                 }
             }
               }
           }
         }
+      }
     
+      stage("Quality Gate") {
+        steps {
+          withSonarQubeEnv('sonar-non-prod') {
+            timeout(activity: true, time: 300, unit: 'SECONDS') {
+              sleep 3
+              waitForQualityGate abortPipeline: true
+            }
+          }
+        }
+      }
     
       stage('Build and upload to Artifactory') {
         steps {
