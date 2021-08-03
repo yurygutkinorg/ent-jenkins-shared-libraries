@@ -87,7 +87,7 @@ def call(String mule_project, String build_tag) {
       MULE_PROJECT                = "${mule_project}"
       SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-      SEND_SLACK_NOTIFICATION     = true
+      SEND_SLACK_NOTIFICATION     = false
       TARGET_ENVIRONMENT          = "dev"
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
@@ -216,7 +216,7 @@ def call(String mule_project, String build_tag) {
             withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
               withSonarQubeEnv('sonar-non-prod') {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
-              sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.7.0.1746:sonar'
+              sh 'mvn sonar:sonar'
                 }
             }
               }
