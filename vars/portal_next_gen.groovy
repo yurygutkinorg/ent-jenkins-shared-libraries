@@ -75,7 +75,10 @@ def call(String appName) {
       }
 
       stage('Prisma image scan') {
-        expression { params.ENABLE_PRISMA_SCAN == true }
+        ENABLE_PRISMA_SCAN = true,
+        when {
+          expression { params.ENABLE_PRISMA_SCAN == true }
+        }
         environment {
           PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
         }
