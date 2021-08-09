@@ -24,7 +24,6 @@ def call(String appName) {
 
     parameters {
       booleanParam(name: 'PUBLISH', defaultValue: false, description: 'Publishes docker image to registry')
-      booleanParam(name: 'ENABLE_PRISMA_SCAN', defaultValue: true, description: 'Enables scanning of docker image')
     }
 
     environment {
@@ -76,9 +75,6 @@ def call(String appName) {
       }
 
       stage('Prisma image scan') {
-        when {
-          expression { params.ENABLE_PRISMA_SCAN == true }
-        }
         environment {
           PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
         }
