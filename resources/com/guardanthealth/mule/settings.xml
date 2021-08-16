@@ -7,8 +7,8 @@
         </server>
         <server>
             <id>ghi-exchange</id>
-            <username><![CDATA[${env.ANYPOINT_USERNAME}]]></username>
-            <password><![CDATA[${env.ANYPOINT_PASSWORD}]]></password>
+            <username>~~~Token~~~</username>
+            <password>${token}</password>
         </server>
         <server>
             <id>MuleRepository</id>
