@@ -162,11 +162,6 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              ),
-              usernamePassword(
-                credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', 
-                usernameVariable: 'ANYPOINT_USERNAME', 
-                passwordVariable: 'ANYPOINT_PASSWORD'
               )
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
@@ -190,7 +185,7 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              ),
+              )
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
