@@ -8,7 +8,7 @@
         <server>
             <id>ghi-exchange</id>
             <username>~~~Token~~~</username>
-            <password>${authToken}</password>
+            <password>${token}</password>
         </server>
         <server>
             <id>MuleRepository</id>

@@ -170,7 +170,9 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B clean -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET
+                    def jsonString = sh(script: "curl -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
+                        def result = readJSON text: jsonString
+                    response1 = sh(script:"mvn -B clean -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
                   """
                 }
               }
@@ -195,7 +197,9 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
-                    mvn -B test -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET
+                    def jsonString = sh(script: "curl -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
+                        def result = readJSON text: jsonString
+                        response1 = sh(script:"mvn -B test -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
                   """
                 }
               }
@@ -232,10 +236,10 @@ def call(String mule_project, String build_tag) {
       stage('Build and upload to Artifactory') {
         steps {
           container('maven') {
-            withCredentials([
               usernamePassword(
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
+            withCredentials([
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
