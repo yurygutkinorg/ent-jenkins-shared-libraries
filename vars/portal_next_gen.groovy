@@ -66,10 +66,19 @@ def call(String appName) {
         }
       }
 
-      stage('Docker build') {
+     stage('Docker build') {
         steps {
-          container('docker') {
-            sh "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -f ./deployment/docker/Dockerfile ."
+         withCredentials([
+            usernamePassword(
+              credentialsId: 'artifactory_ghportal_credentials',
+              usernameVariable: 'DOCKER_USER',
+              passwordVariable: 'DOCKER_PASS',
+            ),
+          ]) {
+            container('docker') {
+              sh 'docker login $DOCKER_REGISTRY_ADDR -u $DOCKER_USER -p $DOCKER_PASS'
+              sh "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} -f ./deployment/docker/Dockerfile ."
+            }
           }
         }
       }
