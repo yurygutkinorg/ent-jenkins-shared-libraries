@@ -236,10 +236,10 @@ def call(String mule_project, String build_tag) {
       stage('Build and upload to Artifactory') {
         steps {
           container('maven') {
+            withCredentials([
               usernamePassword(
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
-            withCredentials([
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
