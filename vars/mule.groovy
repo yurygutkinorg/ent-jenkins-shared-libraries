@@ -198,7 +198,7 @@ def call(String mule_project, String build_tag) {
                   script {
                     def jsonString = sh(script: "curl -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
                     def result = readJSON text: jsonString
-                    response1 = sh(script:"mvn -B test -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
+                    response1 = sh(script:"mvn -B test  -DsecureKey=$MULESOFT_KEY -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
                   }
                 }
               }
