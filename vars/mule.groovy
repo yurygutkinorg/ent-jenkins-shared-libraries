@@ -172,7 +172,7 @@ def call(String mule_project, String build_tag) {
                   script {
                     def token = getConnectedAppToken()
                     sh """
-                    set +
+                    set +x
                     mvn -B clean -Dtoken=$token
                     """
                   }
