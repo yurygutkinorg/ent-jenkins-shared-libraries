@@ -169,8 +169,8 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def mule_token = getConnectedAppToken()
-                    sh(script: "mvn -B clean -Dtoken=$mule_token")
+                    def token = getConnectedAppToken()
+                    sh(script: "mvn -B clean -Dtoken=$token")
                   }
                 }
               }
@@ -193,8 +193,8 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def mule_token = getConnectedAppToken()
-                    sh(script: "mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$mule_token")
+                    def token = getConnectedAppToken()
+                    sh(script: "mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token")
                   }
                 }
               }
