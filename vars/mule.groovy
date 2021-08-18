@@ -323,7 +323,7 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
 
 String getConnectedAppToken() {
     def access_token_url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
-    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
+    def json_response = sh(script: "curl   -Ls -o -X POST -d -H 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
     def jsonObject = readJSON text: json_response
     def token = jsonObject.access_token
     return token;
