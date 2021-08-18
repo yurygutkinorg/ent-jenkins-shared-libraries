@@ -170,8 +170,8 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     def token = getConnectedAppToken()
-                    sh 'echo $token'
                     sh """
+                    set +x
                     mvn -B clean -Dtoken=$token
                     """
                   }
@@ -197,8 +197,8 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     def token = getConnectedAppToken()
-                    sh 'echo $token'
                     sh """
+                    set +x
                     mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
                     """
                   }
