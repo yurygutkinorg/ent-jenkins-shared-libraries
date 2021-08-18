@@ -120,11 +120,7 @@ def call(String mule_project, String build_tag) {
 
       stage('Create shared dir') {
         steps {
-          sh """
-          mkdir -p ${env.SHARED_DIR}
-          cd ${env.WORKSPACE}
-          touch projects.json
-          """
+          sh "mkdir -p ${env.SHARED_DIR}"
         }
       }
     
@@ -168,16 +164,17 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              )
+              ),
+            string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     def token = getConnectedAppToken()
-                    sh """
-                    set +x
+                    sh '''
+                    set +
                     mvn -B clean -Dtoken=$token
-                    """
+                    '''
                   }
                 }
               }
@@ -196,15 +193,16 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
+            string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     def token = getConnectedAppToken()
-                    sh """
+                    sh '''
                     set +x
                     mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
-                    """
+                    '''
                   }
                 }
               }
@@ -324,8 +322,8 @@ String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
 
   return "MULESOFT_ANYPOINT_KEY_${businessGroupCode}_${environment}"
 }
-
 String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
+
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
@@ -333,8 +331,8 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
 
 String getConnectedAppToken() {
     def access_token_url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
-    def json_response = sh(script: "curl -Ls -o -X POST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true) > "${env.WORKSPACE}/projects.json"
-    def jsonObject = readJSON file: "${env.WORKSPACE}/projects.json"
+    def json_response = sh(script: "curl -Ls -o -X POST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
+    def jsonObject = readJSON text: json_response
     def token = jsonObject.access_token
     return token;
 }
