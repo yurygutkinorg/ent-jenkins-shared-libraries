@@ -171,9 +171,9 @@ def call(String mule_project, String build_tag) {
                   script {
                     def token = getConnectedAppToken()
                     sh 'echo $token'
-                    sh '''
+                    sh """
                     mvn -B clean -Dtoken=$token
-                    '''
+                    """
                   }
                 }
               }
@@ -198,9 +198,9 @@ def call(String mule_project, String build_tag) {
                   script {
                     def token = getConnectedAppToken()
                     sh 'echo $token'
-                    sh '''
+                    sh """
                     mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
-                    '''
+                    """
                   }
                 }
               }
