@@ -40,6 +40,7 @@ def call(String mule_project, String build_tag) {
                 - "sh"
                 - "-c"
                 - "cat"
+                - "jq"
                 tty: true
                 volumeMounts:
                 - mountPath: /shared
