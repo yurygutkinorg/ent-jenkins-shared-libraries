@@ -169,9 +169,8 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def jsonString = sh(script: "curl -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
-                    def result = readJSON text: jsonString
-                    res=sh(script:"mvn -B clean  -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
+                    def token = sh(script: "curl  -Ls -X POST 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token' -H 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'client_id=$MULESOFT_CLIENT_ID' --data-urlencode 'client_secret=$MULESOFT_CLIENT_SECRET' --data-urlencode 'grant_type=client_credentials' | jq -r '.access_token'", returnStdout: true).trim()
+                    res=sh(script:"mvn -B clean  -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${token}", returnStdout:true).trim()
                   }
                 }
               }
@@ -196,9 +195,8 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def jsonString = sh(script: "curl -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
-                    def result = readJSON text: jsonString
-                    response1 = sh(script:"mvn -B test  -DsecureKey=$MULESOFT_KEY -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
+                    def token = sh(script: "curl  -Ls -X POST 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token' -H 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'client_id=$MULESOFT_CLIENT_ID' --data-urlencode 'client_secret=$MULESOFT_CLIENT_SECRET' --data-urlencode 'grant_type=client_credentials' | jq -r '.access_token'", returnStdout: true).trim()
+                    res = sh(script:"mvn -B test  -DsecureKey=$MULESOFT_KEY -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${token}", returnStdout:true).trim()
                   }
                 }
               }
