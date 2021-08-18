@@ -92,6 +92,8 @@ def call(String mule_project, String build_tag) {
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
+      client_id                   = credentials('MULESOFT_CLIENT_ID')
+      client_secret               = credentials('MULESOFT_CLIENT_SECRET')
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
         businessGroupCodes[params.BUSINESS_GROUP], 
@@ -162,16 +164,15 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              ),
-            string(credentialsId: 'MULESOFT_CLIENT_ID', variable: 'MULESOFT_CLIENT_ID'),
-            string(credentialsId: 'MULESOFT_CLIENT_SECRET', variable: 'MULESOFT_CLIENT_SECRET')
+              )
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def jsonString = sh(script: "curl  -Ls -o -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
-                    def result = readJSON text: jsonString
-                    res=sh(script:"mvn -B clean  -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
+                    def token = getConnectedAppToken()
+                    sh """
+                    mvn -B clean  -Dtoken=$token
+                    """
                   }
                 }
               }
@@ -189,16 +190,15 @@ def call(String mule_project, String build_tag) {
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
-            string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
-            string(credentialsId: 'MULESOFT_CLIENT_ID', variable: 'MULESOFT_CLIENT_ID'),
-            string(credentialsId: 'MULESOFT_CLIENT_SECRET', variable: 'MULESOFT_CLIENT_SECRET')
+            string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def jsonString = sh(script: "curl -Ls -o -X POST -H 'Content-Type:application/json' https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token -d '{\"client_id\": \"$MULESOFT_CLIENT_ID\",\"client_secret\": \"$MULESOFT_CLIENT_SECRET\",\"grant_type\": \"client_credentials\"}'", returnStdout: true).trim()
-                    def result = readJSON text: jsonString
-                    response1 = sh(script:"mvn -B test  -DsecureKey=$MULESOFT_KEY -DconnectedAppClientId=$MULESOFT_CLIENT_ID -DconnectedAppClientSecret=$MULESOFT_CLIENT_SECRET -Dtoken=${result.access_token}", returnStdout:true).trim()
+                    def token = getConnectedAppToken()
+                    sh"""
+                    mvn -B test  -DsecureKey=$MULESOFT_KEY -Dtoken=$token
+                    """
                   }
                 }
               }
@@ -323,4 +323,12 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
+}
+
+String getConnectedAppToken() {
+    def access_token_url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
+    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
+    def jsonObject = readJSON text: json_response
+    def token = jsonObject.access_token
+    return token;
 }
