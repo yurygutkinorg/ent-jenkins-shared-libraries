@@ -164,17 +164,13 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              ),
-            string(credentialsId: 'token', variable: 'token')
+              )
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def token = getConnectedAppToken()
-                    sh """
-                    set +x
-                    mvn -B clean -Dtoken=$token
-                    """
+                    def mule_token = getConnectedAppToken()
+                    sh(script: "mvn -B clean -Dtoken=$mule_token")
                   }
                 }
               }
@@ -193,16 +189,12 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
-            string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def token = getConnectedAppToken()
-                    sh """
-                    set +x
-                    mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
-                    """
+                    def mule_token = getConnectedAppToken()
+                    sh(script: "mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$mule_token")
                   }
                 }
               }
@@ -334,5 +326,5 @@ String getConnectedAppToken() {
     def json_response = sh(script: "curl -Ls -o -X POST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
     def jsonObject = readJSON text: json_response
     def token = jsonObject.access_token
-    return token
+    return token;
 }
