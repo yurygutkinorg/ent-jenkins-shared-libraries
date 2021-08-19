@@ -107,7 +107,6 @@ def call(String mule_project, String build_tag) {
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
       )
-      token                       = getConnectedAppToken()
     }
 
     stages {
@@ -165,7 +164,8 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              )
+              ),
+              string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
@@ -191,7 +191,8 @@ def call(String mule_project, String build_tag) {
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
-            string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
+            string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
+            string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
