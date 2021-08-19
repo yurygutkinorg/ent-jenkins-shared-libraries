@@ -271,7 +271,7 @@ def call(String mule_project, String build_tag) {
           echo "RELEASE_NAME:  ${RELEASE_NAME}"
           echo "BUSINESS_GROUP:  ${env.BUSINESS_GROUP}"
           build(
-            job: "/deployments/mulesoft",
+            job: "/deployments/mulesoft-testing",
             parameters: [
               string(name: 'MULE_PROJECT', value: env.MULE_PROJECT),
               string(name: 'TARGET_ENVIRONMENT',  value: env.TARGET_ENVIRONMENT),
