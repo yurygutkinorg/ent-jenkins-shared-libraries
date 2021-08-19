@@ -166,14 +166,14 @@ def call(String mule_project, String build_tag) {
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
-              string(credentialsId: 'token', variable: 'token')
+              string(credentialsId: "${token}", variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B clean -Dtoken=${env.token}
+                    mvn -B clean -Dtoken=$token
                     """
                   }
                 }
@@ -193,13 +193,13 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
-            string(credentialsId: 'token', variable: 'token')
+            string(credentialsId: "${token}", variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     sh """
-                    mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=${env.token}
+                    mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
                     """
                   }
                 }
