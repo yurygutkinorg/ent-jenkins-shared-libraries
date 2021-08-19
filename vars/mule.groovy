@@ -172,7 +172,6 @@ def call(String mule_project, String build_tag) {
                   script {
                     def token = getConnectedAppToken()
                     sh """
-                    set +x
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean -Dtoken=$token
                     """
@@ -201,7 +200,6 @@ def call(String mule_project, String build_tag) {
                   script {
                     def token = getConnectedAppToken()
                     sh """
-                    set +X
                     mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
                     """
                   }
