@@ -174,7 +174,7 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     sh """
-                    set +X
+                    set +x
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean -Dtoken=$MULE_CONNECTED_APP_TOKEN
                     """
