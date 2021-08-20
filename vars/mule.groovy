@@ -92,8 +92,6 @@ def call(String mule_project, String build_tag) {
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
-      client_id                   = credentials('MULESOFT_CLIENT_ID')
-      client_secret               = credentials('MULESOFT_CLIENT_SECRET')
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
         businessGroupCodes[params.BUSINESS_GROUP], 
@@ -107,6 +105,9 @@ def call(String mule_project, String build_tag) {
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
       )
+      MULE_CONNECTED_APP_TOKEN    = getConnectedAppToken(
+        env.MULESOFT_CLIENT_ID, 
+        env.MULESOFT_CLIENT_SECRET)
     }
 
     stages {
@@ -164,16 +165,14 @@ def call(String mule_project, String build_tag) {
                 credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
                 usernameVariable: 'MULE_REPOSITORY_USERNAME', 
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
-              ),
-              string(credentialsId: 'token', variable: 'token')
+              )
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def token = getConnectedAppToken()
                     sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B clean -Dtoken=$token
+                    mvn -B clean -Dtoken=$MULE_CONNECTED_APP_TOKEN
                     """
                   }
                 }
@@ -193,14 +192,12 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY'),
-            string(credentialsId: 'token', variable: 'token')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
-                    def token = getConnectedAppToken()
                     sh """
-                    mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$token
+                    mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$MULE_CONNECTED_APP_TOKEN
                     """
                   }
                 }
@@ -328,10 +325,10 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
 
-String getConnectedAppToken() {
-    def access_token_url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
-    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u $client_id:$client_secret ${access_token_url}", returnStdout:true)
+String getConnectedAppToken(client_id, client_secret) {
+    String url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
+    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u ${client_id}:${client_secret} ${url}", returnStdout:true)
     def jsonObject = readJSON text: json_response
-    def token = jsonObject.access_token
+    String token = jsonObject.access_token
     return token
 }
