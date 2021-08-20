@@ -92,8 +92,8 @@ def call(String mule_project, String build_tag) {
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
-      CLIENT_ID                   = credentials('MULESOFT_CLIENT_ID')
-      CLIENT_SECRET               = credentials('MULESOFT_CLIENT_SECRET')
+      MULESOFT_CLIENT_ID          = credentials('MULESOFT_CLIENT_ID')
+      MULESOFT_CLIENT_SECRET      = credentials('MULESOFT_CLIENT_SECRET')
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
         businessGroupCodes[params.BUSINESS_GROUP], 
@@ -325,9 +325,9 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
 
-String getConnectedAppToken(CLIENT_ID, CLIENT_SECRET) {
+String getConnectedAppToken(client_id, client_secret)) {
     String url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
-    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u ${CLIENT_ID}:${CLIENT_SECRET} ${url}", returnStdout:true)
+    def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u ${client_id}:${client_secret} ${url}", returnStdout:true)
     def jsonObject = readJSON text: json_response
     String token = jsonObject.access_token
     return token
