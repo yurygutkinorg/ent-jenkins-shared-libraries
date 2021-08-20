@@ -92,8 +92,8 @@ def call(String mule_project, String build_tag) {
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
-      MULESOFT_CLIENT_ID          = credentials('MULESOFT_CLIENT_ID')
-      MULESOFT_CLIENT_SECRET      = credentials('MULESOFT_CLIENT_SECRET')
+      client_id          = credentials('MULESOFT_CLIENT_ID')
+      client_secret      = credentials('MULESOFT_CLIENT_SECRET')
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
         businessGroupCodes[params.BUSINESS_GROUP], 
