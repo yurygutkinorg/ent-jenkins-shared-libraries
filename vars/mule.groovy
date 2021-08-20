@@ -172,6 +172,7 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
                     sh """
+                    set +x
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
                     mvn -B clean -Dtoken=$MULE_CONNECTED_APP_TOKEN
                     """
@@ -198,7 +199,9 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   script {
+                    
                     sh """
+                    set +x 
                     mvn -B test -DsecureKey=$MULESOFT_KEY -Dtoken=$MULE_CONNECTED_APP_TOKEN
                     """
                   }
