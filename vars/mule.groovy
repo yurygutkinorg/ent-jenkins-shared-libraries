@@ -107,10 +107,6 @@ def call(String mule_project, String build_tag) {
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
       )
-      MULE_CONNECTED_APP_TOKEN    = getConnectedAppToken(
-        env.MULESOFT_CLIENT_ID,
-        env.MULESOFT_CLIENT_SECRET
-      )
     }
 
     stages {
