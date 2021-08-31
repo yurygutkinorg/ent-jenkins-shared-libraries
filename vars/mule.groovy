@@ -107,7 +107,6 @@ def call(String mule_project, String build_tag) {
         businessGroupCodes[params.BUSINESS_GROUP], 
         env.TARGET_ENVIRONMENT
       )
-    }
       token    = getConnectedAppToken()
     }
 
