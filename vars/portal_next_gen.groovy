@@ -111,6 +111,7 @@ def call(String appName) {
         when {
           anyOf {
             branch 'master'
+            expression {env.BRANCH_NAME.startsWith("release-")}
             expression { params.PUBLISH == true }
           }
         }
