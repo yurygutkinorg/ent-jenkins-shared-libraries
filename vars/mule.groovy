@@ -85,7 +85,6 @@ def call(String mule_project, String build_tag) {
 
     environment {
       MULE_PROJECT                = "${mule_project}"
-      SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "dev"
@@ -116,11 +115,7 @@ def call(String mule_project, String build_tag) {
         }
       }
 
-      stage('Create shared dir') {
-        steps {
-          sh "mkdir -p ${env.SHARED_DIR}"
-        }
-      }
+
     
       stage('Write maven settings to the workspace') {
         steps {
@@ -132,7 +127,7 @@ def call(String mule_project, String build_tag) {
 
       stage('Release branch') {
         when {
-          expression {env.BRANCH_NAME.split("release-").size() == 2}
+          expression {env.BRANCH_NAME.startsWith('release')}
         }
         steps {
           script {
@@ -144,7 +139,7 @@ def call(String mule_project, String build_tag) {
       stage('Non-release branch') {
         when {
           not {
-            expression {env.BRANCH_NAME.split("release-").size() == 2}
+            expression {env.BRANCH_NAME.startsWith('release')}
           }
         }
         steps {
@@ -228,7 +223,7 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
-                    mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
+                    mvn -B package deploy  -DskipTests
                   """
                 }
               }
