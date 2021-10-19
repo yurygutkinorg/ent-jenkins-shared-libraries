@@ -121,6 +121,7 @@ def call(String mule_project, String build_tag) {
         steps {
           script {
             writeFile(file: "settings.xml", text: settings)
+            sh "ls -lrt ${workspace}"
           }
         }
       }
