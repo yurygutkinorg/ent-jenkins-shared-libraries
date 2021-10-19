@@ -223,7 +223,7 @@ def call(String mule_project, String build_tag) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
-                    mvn -B package deploy -P${env.TARGET_ENVIRONMENT} -DskipTests
+                    mvn -B package deploy  -DskipTests
                   """
                 }
               }
