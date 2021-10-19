@@ -85,7 +85,6 @@ def call(String mule_project, String build_tag) {
 
     environment {
       MULE_PROJECT                = "${mule_project}"
-      SHARED_DIR                  = "/shared/${build_tag}/"
       GIT_COMMIT                  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
       SEND_SLACK_NOTIFICATION     = true
       TARGET_ENVIRONMENT          = "dev"
@@ -116,11 +115,7 @@ def call(String mule_project, String build_tag) {
         }
       }
 
-      stage('Create shared dir') {
-        steps {
-          sh "mkdir -p ${env.SHARED_DIR}"
-        }
-      }
+
     
       stage('Write maven settings to the workspace') {
         steps {
