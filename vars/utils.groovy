@@ -217,3 +217,23 @@ Boolean isDownstreamJob(RunWrapper build) {
     build.getBuildCauses('hudson.model.Cause$UpstreamCause').size() > 0
 }
 
+void uploadConsole2S3Bucket(String jenkisCredId, String accessKeyCredID, String secretKeyCredID){
+    withCredentials([
+            usernamePassword(
+                    credentialsId: jenkisCredId,
+                    usernameVariable: 'JENKINS_API_USER',
+                    passwordVariable: 'JENKINS_API_PWD'
+            )
+    ]) {
+        sh("curl -u ${JENKINS_API_USER}:${JENKINS_API_PWD} ${BUILD_URL}consoleText > console.txt")
+        sh("zip -v || apk add zip")
+        sh("zip ${BUILD_TAG}.zip console.txt")
+
+    }
+    withCredentials([string(credentialsId: accessKeyCredID, variable: 'ACCESS_KEY'),string(credentialsId: secretKeyCredID, variable: 'SECRET_KEY')]) {
+        withEnv(["AWS_ACCESS_KEY_ID=${ACCESS_KEY}","AWS_SECRET_ACCESS_KEY=${SECRET_KEY}"]){
+            s3Upload(file: "${BUILD_TAG}.zip", bucket: 'non-prod-jenkins-store', path: "${JOB_NAME}/${BUILD_NUMBER}/${BUILD_TAG}_${(new Date().toString()).replaceAll(" ", "")}.zip")
+        }
+
+    }
+}
