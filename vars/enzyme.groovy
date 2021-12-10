@@ -272,7 +272,8 @@ List<String> enzymeAppNamesList() {
             "tissue-reporting",
             "pdl1-reporting",
             "fax",
-            "mrd-order-scheduler"
+            "mrd-order-scheduler",
+            "bws-integration"
     ]
 }
 
