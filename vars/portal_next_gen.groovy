@@ -63,7 +63,7 @@ def call(String appName) {
         steps {
           withMaven(mavenSettingsFilePath: mvnSettingsFile) {
             withSonarQubeEnv('sonar') {
-              sh "mvn clean install"
+              sh "mvn clean package"
               sh "mvn sonar:sonar -Dsonar.login=$SONARQUBE_LOGIN_TOKEN -Dsonar.branch.name=${utils.getCurrentBranch()}"
              }
           }
