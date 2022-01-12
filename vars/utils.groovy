@@ -216,7 +216,32 @@ void removeLocalBranch(String branchName) {
 Boolean isDownstreamJob(RunWrapper build) {
     build.getBuildCauses('hudson.model.Cause$UpstreamCause').size() > 0
 }
+String createPR(String credID, String appName, String baseBranch, String mergingBranch, String title) {
+  withCredentials([
+          usernamePassword(credentialsId: credID, passwordVariable: 'gitPass', usernameVariable: 'gitUser')
+  ]) {
+    cmd = "curl  -X POST -H 'Accept: application/vnd.github.v3+json'  " +
+            "https://${gitUser}:${gitPass}@api.github.com/repos/guardant/${appName}/pulls -d " +
+            "'{\"head\":\"${mergingBranch}\",\"base\":\"${baseBranch}\",\"title\":\"${title} ${params.ENVIRONMENT} env\"}'"
+    cmdOutPut = sh(script: cmd, returnStdout: true)
+    prNumber = sh(script: "echo '${cmdOutPut}' | grep '\"number\":' | head -1 | cut -d':' -f2 | sed 's/,//;s/ //'", returnStdout: true).trim()
+    prURL = sh(script: "echo '${cmdOutPut}' | grep html_url | head -1 | sed 's/\"html_url\"://;s/,//;s/   //'", returnStdout: true).trim()
+    println "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+    println "PR page URL: ${prURL}"
+    println "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+    return prNumber
+  }
+}
 
+void addReviewers(String appName, String inPrNumber, String formatedList) {
+  withCredentials([
+          usernamePassword(credentialsId: 'ghauto-github', passwordVariable: 'gitPass', usernameVariable: 'gitUser')
+  ]) {
+    cmd = "curl POST -H 'Accept: application/vnd.github.v3+json' https://${gitUser}:${gitPass}@api.github.com/repos/guardant/${appName}/pulls/${inPrNumber}/requested_reviewers -d '{\"reviewers\":[${formatedList}]}'"
+    sh(script: cmd, returnStdout: false)
+  }
+
+}
 void uploadConsole2S3Bucket(String jenkisCredId, String accessKeyCredID, String secretKeyCredID){
     withCredentials([
             usernamePassword(
@@ -237,3 +262,4 @@ void uploadConsole2S3Bucket(String jenkisCredId, String accessKeyCredID, String 
 
     }
 }
+
