@@ -124,7 +124,7 @@ def call(String appName) {
       stage('Docker publish') {
         when {
           anyOf {
-            branch 'master'
+            branch 'ECS-2938-V2-Auth-Changes'
             expression {env.BRANCH_NAME.startsWith("release-")}
             expression { params.PUBLISH == true }
           }
