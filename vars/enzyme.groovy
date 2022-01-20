@@ -273,7 +273,8 @@ List<String> enzymeAppNamesList() {
             "pdl1-reporting",
             "fax",
             "mrd-order-scheduler",
-            "bws-integration"
+            "bws-integration",
+            "g360-reporting-ce"
     ]
 }
 
