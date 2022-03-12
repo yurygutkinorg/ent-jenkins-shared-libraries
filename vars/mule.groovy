@@ -179,7 +179,7 @@ def call(String mule_project, String build_tag) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
                   sh """
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B -X -e clean
+                    mvn -B clean
                   """
                 }
               }
