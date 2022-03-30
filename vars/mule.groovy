@@ -165,7 +165,7 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'artifactory_svc_data_team', 
+                credentialsId: 'artifactory_svc_mulesoft_team', 
                 usernameVariable: 'ARTIFACTORY_USERNAME', 
                 passwordVariable: 'ARTIFACTORY_PASSWORD'
               ),
@@ -226,7 +226,7 @@ def call(String mule_project, String build_tag) {
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'artifactory_svc_data_team', 
+                credentialsId: 'artifactory_svc_mulesoft_team', 
                 usernameVariable: 'ARTIFACTORY_USERNAME', 
                 passwordVariable: 'ARTIFACTORY_PASSWORD'
               ),
