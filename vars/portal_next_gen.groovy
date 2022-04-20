@@ -5,6 +5,7 @@ def call(String appName) {
 
   pipeline {
     options {
+      disableConcurrentBuilds()
       buildDiscarder(logRotator(
         numToKeepStr: '10',
         daysToKeepStr: '30',
