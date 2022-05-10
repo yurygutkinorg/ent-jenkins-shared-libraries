@@ -23,6 +23,52 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <repositories>
+                    <repository>
+                        <id>Central</id>
+                        <name>Central</name>
+                        <url>https://repo1.maven.org/maven2/</url>
+                    </repository>
+                    <repository>
+                        <id>ghi-exchange</id>
+                        <name>Anypoint Exchange</name>
+                        <url>https://maven.anypoint.mulesoft.com/api/v2/organizations/20df7145-cc7c-4ca2-9a13-121f453d3945/maven
+                            </url>
+                        <layout>default</layout>
+                    </repository>
+                    <repository>
+                        <id>anypoint-exchange-v2</id>
+                        <name>Anypoint Exchange V2</name>
+                        <url>https://maven.anypoint.mulesoft.com/api/v2/maven</url>
+                        <layout>default</layout>
+                    </repository>
+                    <repository>
+                        <id>anypoint-exchange</id>
+                        <name>Anypoint Exchange</name>
+                        <url>https://maven.anypoint.mulesoft.com/api/v1/maven</url>
+                        <layout>default</layout>
+                    </repository>
+                    <repository>
+                        <id>splunk-artifactory</id>
+                        <name>Splunk Releases</name>
+                        <url>https://splunk.jfrog.io/splunk/ext-releases-local</url>
+                    </repository>
+                    <repository>
+                        <id>mulesoft-releases</id>
+                        <name>MuleSoft Releases Repository</name>
+                        <url>https://repository.mulesoft.org/releases/</url>
+                        <layout>default</layout>
+                    </repository>
+                    <repository>
+                        <id>ghi-artifactory</id>
+                        <name>Artifactory</name>
+                        <url>https://ghi.jfrog.io/artifactory/ghmule</url>
+                        <snapshots>
+                            <enabled>true</enabled>
+                        </snapshots>
+                        <releases>
+                            <enabled>true</enabled>
+                        </releases>
+                    </repository>
                 <repository>
                     <id>MuleRepository</id>
                     <name>MuleRepository</name>
@@ -35,6 +81,7 @@
                         <enabled>true</enabled>
                     </snapshots>
                 </repository>
+                
             </repositories>
         </profile>
     </profiles>
