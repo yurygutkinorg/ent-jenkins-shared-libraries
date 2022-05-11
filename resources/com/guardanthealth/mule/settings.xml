@@ -59,6 +59,26 @@
                         <layout>default</layout>
                     </repository>
                     <repository>
+                        <id>mulesoft-snapshots</id>
+                        <name>MuleSoft Snapshots Repository</name>
+                        <url>https://repository.mulesoft.org/snapshots/</url>
+                    </repository>
+                    <repository>
+                        <id>mulesoft-master</id>
+                        <name>MuleSoft Master Repository</name>
+                        <url>https://repository-master.mulesoft.org/nexus/content/groups/public/</url>
+                    </repository>
+                    <repository>
+                        <id>mule-ee-releases</id>
+                        <name>MuleEE Releases Repository</name>
+                        <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases-ee/</url>
+                    </repository>
+                    <repository>
+                        <id>muleforge-releases</id>
+                        <name>MuleForge Snapshot Repository</name>
+                        <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases/</url>
+                    </repository>
+                    <repository>
                         <id>ghi-artifactory</id>
                         <name>Artifactory</name>
                         <url>https://ghi.jfrog.io/artifactory/ghmule</url>
