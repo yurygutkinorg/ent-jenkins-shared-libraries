@@ -52,6 +52,7 @@ def call(String appName) {
 
     stage('Build') {
         steps {
+                    sh 'node -v'
                     sh 'npm run build'
                 }
             }
