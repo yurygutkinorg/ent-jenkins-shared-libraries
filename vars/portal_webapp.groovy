@@ -43,19 +43,19 @@ def call(String appName) {
         }
       }
 
-    stage('Unit Test') {
-        steps {
-                    sh 'npm install'
-                    sh 'echo "skipping...."'
-                }
-            }
+//     stage('Unit Test') {
+//         steps {
+//                     sh 'npm install'
+//                     sh 'echo "skipping...."'
+//                 }
+//             }
 
-    stage('Build') {
-        steps {
-                    sh 'node -v'
-                    sh 'npm run build'
-                }
-            }
+//     stage('Build') {
+//         steps {
+//                     sh 'node -v'
+//                     sh 'npm run build'
+//                 }
+//             }
 
     stage('Docker build') {
         steps {
