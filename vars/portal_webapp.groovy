@@ -135,28 +135,28 @@ def call(String appName) {
 //        }
 //      }
 
-    post {
-      success {
-        script {
-          slack.notify(
-            repositoryName: appName,
-            status: 'Success',
-            additionalText: '',
-            sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
-          )
-        }
-      }
-      failure {
-        script {
-          slack.notify(
-            repositoryName: appName,
-            status: 'Failure',
-            additionalText: '',
-            sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
-            )
-          }
-        }
-      }
+    // post {
+    //   success {
+    //     script {
+    //       slack.notify(
+    //         repositoryName: appName,
+    //         status: 'Success',
+    //         additionalText: '',
+    //         sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
+    //       )
+    //     }
+    //   }
+    //   failure {
+    //     script {
+    //       slack.notify(
+    //         repositoryName: appName,
+    //         status: 'Failure',
+    //         additionalText: '',
+    //         sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
+    //         )
+    //       }
+    //     }
+    //   }
     }
   }
 }
