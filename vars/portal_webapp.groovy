@@ -153,13 +153,13 @@ def call(String appName) {
             status: 'Failure',
             additionalText: '',
             sendSlackNotification: env.SEND_SLACK_NOTIFICATION.toBoolean()
-          )
+            )
+          }
         }
       }
     }
   }
 }
-
 String manifest() {
   return '''
 apiVersion: v1
