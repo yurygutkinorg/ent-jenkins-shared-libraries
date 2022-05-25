@@ -122,19 +122,19 @@ def call(String appName) {
         }
       }
 
-//      stage('Trigger deployment job') {
-//        when { branch 'master' }
-//        steps {
-//          build(
-//            job: "/deployments/argocd-update-image-tag",
-//            parameters: [
-//              string(name: 'APP_NAME', value: appName),
-//              string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
-//              string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
-//            ], quietPeriod: 2
-//          )
-//        }
-//      }
+      stage('Trigger deployment job') {
+        when { branch 'feature_dashboard_webapp' }
+        steps {
+          build(
+            job: "/deployments/argocd-update-image-tag",
+            parameters: [
+              string(name: 'APP_NAME', value: appName),
+              string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
+              string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
+            ], quietPeriod: 2
+          )
+        }
+      }
 
     // post {
     //   success {
