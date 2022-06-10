@@ -97,7 +97,7 @@ def call(String appName) {
           }
         }
       }
-
+      /*
       stage('Prisma image scan') {
         environment {
           PRISMA_RESULT_FILE = 'prisma-cloud-scan-results.json'
@@ -121,7 +121,7 @@ def call(String appName) {
           }
         }
       }
-
+      */
       stage('Docker publish') {
         when {
           anyOf {
