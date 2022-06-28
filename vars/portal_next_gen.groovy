@@ -127,7 +127,7 @@ def call(String appName) {
         when {
           anyOf {
             branch 'master'
-            expression {env.BRANCH_NAME.startsWith("release-")}
+            expression {env.BRANCH_NAME.startsWith("DEVOPS-1305-")}
             expression { params.PUBLISH == true }
           }
         }
