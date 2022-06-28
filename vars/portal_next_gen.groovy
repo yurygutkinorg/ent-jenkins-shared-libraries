@@ -127,7 +127,7 @@ def call(String appName) {
         when {
           anyOf {
             branch 'master'
-            expression {env.BRANCH_NAME.startsWith("DEVOPS-1305-")}
+            expression {env.BRANCH_NAME.startsWith("release-")}
             expression { params.PUBLISH == true }
           }
         }
@@ -162,7 +162,7 @@ def call(String appName) {
       }
 
       stage('Trigger to deployment dev02 env job') {
-        when { expression {env.BRANCH_NAME.startsWith("DEVOPS-1305-")} }
+        when { expression {env.BRANCH_NAME.startsWith("release-")} }
         steps {
           build(
             job: "/deployments/argocd-update-image-tag",
