@@ -32,6 +32,7 @@ def call(String appName) {
       DOCKER_IMAGE = "${DOCKER_REGISTRY_ADDR}/${appName}"
       DOCKER_TAG = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_ID}"
       TARGET_ENVIRONMENT = 'dev'
+      TARGET_RELEASE_ENVIRONMENT = 'dev02'
       SEND_SLACK_NOTIFICATION = 'true'
     }
 
@@ -154,6 +155,20 @@ def call(String appName) {
             parameters: [
               string(name: 'APP_NAME', value: appName),
               string(name: 'ENVIRONMENT', value: env.TARGET_ENVIRONMENT),
+              string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
+            ], quietPeriod: 2
+          )
+        }
+      }
+
+      stage('Trigger to deployment dev02 env job') {
+        when { expression {env.BRANCH_NAME.startsWith("release-")} }
+        steps {
+          build(
+            job: "/deployments/argocd-update-image-tag",
+            parameters: [
+              string(name: 'APP_NAME', value: appName),
+              string(name: 'ENVIRONMENT', value: env.TARGET_RELEASE_ENVIRONMENT),
               string(name: 'DOCKER_IMAGE_TAG', value: env.DOCKER_TAG)
             ], quietPeriod: 2
           )
