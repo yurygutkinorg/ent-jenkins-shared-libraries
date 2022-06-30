@@ -101,7 +101,7 @@ def call(String appName) {
       stage('Docker publish') {
         when {
           anyOf {
-            branch 'feature_dashboard_webapp'
+            branch 'master'
             expression {env.BRANCH_NAME.startsWith("release-")}
             expression { params.PUBLISH == true }
           }
