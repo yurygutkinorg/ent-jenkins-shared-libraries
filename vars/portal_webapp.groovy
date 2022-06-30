@@ -101,7 +101,7 @@ def call(String appName) {
       stage('Docker publish') {
         when {
           anyOf {
-            branch 'feature_dashboard_webapp'
+            branch 'master'
             expression {env.BRANCH_NAME.startsWith("release-")}
             expression { params.PUBLISH == true }
           }
@@ -123,7 +123,7 @@ def call(String appName) {
       }
 
       stage('Trigger deployment job') {
-        when { branch 'feature_dashboard_webapp' }
+        when { branch 'master' }
         steps {
           build(
             job: "/deployments/argocd-update-image-tag",
