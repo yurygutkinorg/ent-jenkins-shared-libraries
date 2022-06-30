@@ -123,7 +123,7 @@ def call(String appName) {
       }
 
       stage('Trigger deployment job') {
-        when { branch 'feature_dashboard_webapp' }
+        when { branch 'master' }
         steps {
           build(
             job: "/deployments/argocd-update-image-tag",
