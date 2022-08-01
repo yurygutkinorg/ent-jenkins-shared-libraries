@@ -87,7 +87,7 @@ def call(String appName) {
         echo 'Snyk Security Scanning ...'
         snykSecurity(
           snykInstallation: 'project_test',
-          snykTokenId: 'dc4116ef-234e-4046-9205-3a26f1857753',
+          snykTokenId: 'snyk_api_token',
          )
         }
       } 
