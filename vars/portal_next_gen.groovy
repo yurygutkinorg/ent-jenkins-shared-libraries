@@ -64,7 +64,7 @@ def call(String appName) {
                 }
                 steps {
                     echo 'Snyk Security Scanning ...'
-                    sh 'mvn wrapper:wrapper'
+                    sh 'mvn -N wrapper:wrapper'
                     snykSecurity(
                             snykInstallation: 'project_test',
                             snykTokenId: 'snyk_api_token',
