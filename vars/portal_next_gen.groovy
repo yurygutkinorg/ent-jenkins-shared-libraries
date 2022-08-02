@@ -60,7 +60,7 @@ def call(String appName) {
       steps {
           container('maven') {
             echo 'Snyk Security Scanning ...'
-            sh 'rm -fr mvnw.cmd; mvn -N wrapper:wrapper'
+            sh 'mvn -N wrapper:wrapper'
             snykSecurity(
               snykInstallation: 'project_test',
               snykTokenId: 'snyk_api_token',
