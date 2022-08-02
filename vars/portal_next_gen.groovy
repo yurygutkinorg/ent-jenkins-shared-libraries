@@ -60,7 +60,7 @@ def call(String appName) {
       steps {
           container('maven') {
             echo 'Snyk Security Scanning ...'
-            sh 'cat /etc/os-release'
+            sh 'cat /etc/os-release; rm -fr mvnw.cmd'
             snykSecurity(
               snykInstallation: 'project_test',
               snykTokenId: 'snyk_api_token',
