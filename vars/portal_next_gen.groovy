@@ -56,6 +56,17 @@ def call(String appName) {
         }
       }
 
+      stage('Snyk Security Scan') {
+      steps {
+        echo 'Snyk Security Scanning ...'
+        snykSecurity(
+          snykInstallation: 'project_test',
+          snykTokenId: 'snyk_api_token',
+          targetFile: 'pom.xml'
+         )
+        }
+      } 
+
       stage('Maven Sonar') {
         environment {
           ARTIFACTORY_USERNAME = '_gradle-publisher'
@@ -82,16 +93,7 @@ def call(String appName) {
           }
         }
       }
-     stage('Snyk Security Scan') {
-      steps {
-        echo 'Snyk Security Scanning ...'
-        snykSecurity(
-          snykInstallation: 'project_test',
-          snykTokenId: 'snyk_api_token',
-          targetFile: 'pom.xml'
-         )
-        }
-      } 
+
      stage('Docker build') {
         steps {
          withCredentials([
