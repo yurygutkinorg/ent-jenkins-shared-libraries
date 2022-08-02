@@ -58,13 +58,15 @@ def call(String appName) {
 
       stage('Snyk Security Scan') {
       steps {
-        echo 'Snyk Security Scanning ...'
-        sh 'uname -r'
-        snykSecurity(
-          snykInstallation: 'project_test',
-          snykTokenId: 'snyk_api_token',
-          targetFile: 'pom.xml'
-         )
+          container('maven') {
+            echo 'Snyk Security Scanning ...'
+            sh 'uname -r'
+            snykSecurity(
+              snykInstallation: 'project_test',
+              snykTokenId: 'snyk_api_token',
+              targetFile: 'pom.xml'
+            )
+          }
         }
       } 
 
