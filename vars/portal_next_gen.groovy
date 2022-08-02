@@ -88,6 +88,7 @@ def call(String appName) {
         snykSecurity(
           snykInstallation: 'project_test',
           snykTokenId: 'snyk_api_token',
+          targetFile: 'pom.xml'
          )
         }
       } 
