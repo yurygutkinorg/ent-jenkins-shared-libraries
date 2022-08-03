@@ -63,7 +63,7 @@ def call(String appName) {
                 }
                 steps {
                     withMaven(mavenSettingsFilePath: mvnSettingsFile) {
-                        // sh "mvn wrapper:wrapper"
+                        sh "mvn wrapper:wrapper"
                         snykSecurity(
                                 snykInstallation: 'project_test',
                                 snykTokenId: 'snyk_api_token',
