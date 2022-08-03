@@ -55,7 +55,7 @@ def call(String appName) {
                     }
                 }
             }
-
+            /*
             stage('Snyk Security Scan') {
                 environment {
                     ARTIFACTORY_USERNAME = '_gradle-publisher'
@@ -73,7 +73,7 @@ def call(String appName) {
                     )
                 }
             }
-
+            */
             stage('Maven Sonar') {
                 environment {
                     ARTIFACTORY_USERNAME = '_gradle-publisher'
@@ -83,6 +83,7 @@ def call(String appName) {
                 steps {
                     withMaven(mavenSettingsFilePath: mvnSettingsFile) {
                         withSonarQubeEnv('sonar') {
+                            sh "mvn wrapper:wrapper"
                             sh "mvn clean package"
                             sh "mvn sonar:sonar -Dsonar.login=$SONARQUBE_LOGIN_TOKEN -Dsonar.branch.name=${utils.getCurrentBranch()}"
                         }
