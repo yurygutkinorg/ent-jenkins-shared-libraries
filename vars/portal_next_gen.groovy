@@ -74,6 +74,23 @@ def call(String appName) {
                 }
             }
             */
+            stage('snykSecurity Maven') {
+                environment {
+                    ARTIFACTORY_USERNAME = '_gradle-publisher'
+                    ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+                    SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
+                }
+                steps {
+                    withMaven(mavenSettingsFilePath: mvnSettingsFile) {
+                        sh "mvn wrapper:wrapper"
+                        snykSecurity(
+                                snykInstallation: 'project_test',
+                                snykTokenId: 'snyk_api_token',
+                                targetFile: 'pom.xml'
+                        )
+                    }
+                }
+            }
             stage('Maven Sonar') {
                 environment {
                     ARTIFACTORY_USERNAME = '_gradle-publisher'
@@ -82,6 +99,7 @@ def call(String appName) {
                 }
                 steps {
                     withMaven(mavenSettingsFilePath: mvnSettingsFile) {
+
                         withSonarQubeEnv('sonar') {
                             sh "mvn wrapper:wrapper"
                             sh "mvn clean package"
