@@ -205,6 +205,11 @@ def call(String mule_project, String build_tag) {
                 usernameVariable: 'ANYPOINT_USERNAME',
                 passwordVariable: 'ANYPOINT_PASSWORD'
               ),
+              usernamePassword(
+              credentialsId: "${env.MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS}",
+              usernameVariable: 'AWS_SECRETSMANAGER_ACCESSKEY',
+              passwordVariable: 'AWS_SECRETSMANAGER_SECRETKEY'
+              ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
