@@ -92,6 +92,8 @@ def call(String mule_project, String build_tag) {
       RELEASE_NAME                = "${env.BRANCH_NAME}-${env.GIT_COMMIT.substring(0,8)}"
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
+      MULESOFT_CLIENT_ID          = credentials('MULESOFT_CLIENT_ID')
+      MULESOFT_CLIENT_SECRET      = credentials('MULESOFT_CLIENT_SECRET')
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
         businessGroupCodes[params.BUSINESS_GROUP],
@@ -108,6 +110,7 @@ def call(String mule_project, String build_tag) {
       MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS   = getAWSSecretsManagerSecretName(
         env.TARGET_ENVIRONMENT
       )
+      MULE_CONNECTED_APP_TOKEN = getConnectedAppToken(env.MULESOFT_CLIENT_ID, env.MULESOFT_CLIENT_SECRET)
     }
 
     stages {
@@ -180,10 +183,10 @@ def call(String mule_project, String build_tag) {
             ]) {
               withEnv(["RELEASE_NAME=${RELEASE_NAME}"]) {
                 withMaven(mavenSettingsFilePath: 'settings.xml') {
-                  sh """
+                  sh '''
                     mvn versions:set -DnewVersion=${env.RELEASE_NAME}
-                    mvn -B clean
-                  """
+                    mvn -B clean -Dtoken=$MULE_CONNECTED_APP_TOKENan
+                  '''
                 }
               }
             }
@@ -321,4 +324,14 @@ String getAWSSecretsManagerSecretName(String publishEnv) {
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS_${environment}"
+}
+
+String getConnectedAppToken(client_id , client_secret) {
+  String url = 'https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token'
+  withCredentials([string(credentialsId: 'token', variable: 'token')]) {
+  def json_response = sh(script: "curl -XPOST -d 'grant_type=client_credentials' -u ${MULESOFT_CLIENT_ID}:${MULESOFT_CLIENT_SECRET} ${url}", returnStdout:true) .trim()
+  def jsonObject = readJSON text: json_response
+  def token = jsonObject.access_token
+  return token
+  }
 }
