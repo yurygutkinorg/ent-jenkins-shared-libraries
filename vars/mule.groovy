@@ -94,15 +94,18 @@ def call(String mule_project, String build_tag) {
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
 
       ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
-        businessGroupCodes[params.BUSINESS_GROUP], 
+        businessGroupCodes[params.BUSINESS_GROUP],
         env.TARGET_ENVIRONMENT
       )
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(
-        businessGroupCodes[params.BUSINESS_GROUP], 
+        businessGroupCodes[params.BUSINESS_GROUP],
         env.TARGET_ENVIRONMENT
       )
       SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(
-        businessGroupCodes[params.BUSINESS_GROUP], 
+        businessGroupCodes[params.BUSINESS_GROUP],
+        env.TARGET_ENVIRONMENT
+      )
+      MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS   = getAWSSecretsManagerSecretName(
         env.TARGET_ENVIRONMENT
       )
     }
@@ -115,14 +118,14 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
-       
+
       stage('Create shared dir') {
         steps {
           sh "mkdir -p ${env.SHARED_DIR}"
         }
       }
 
-    
+
       stage('Write maven settings to the workspace') {
         steps {
           script {
@@ -141,7 +144,7 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
-     
+
       stage('Non-release branch') {
         when {
           not {
@@ -160,18 +163,18 @@ def call(String mule_project, String build_tag) {
           container('maven') {
             withCredentials([
               usernamePassword(
-                credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
-                usernameVariable: 'MULE_REPOSITORY_USERNAME', 
+                credentialsId: 'MULESOFT_NEXUS_REPOSITORY',
+                usernameVariable: 'MULE_REPOSITORY_USERNAME',
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'artifactory_svc_mulesoft_team', 
-                usernameVariable: 'ARTIFACTORY_USERNAME', 
+                credentialsId: 'artifactory_svc_mulesoft_team',
+                usernameVariable: 'ARTIFACTORY_USERNAME',
                 passwordVariable: 'ARTIFACTORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', 
-                usernameVariable: 'ANYPOINT_USERNAME', 
+                credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT',
+                usernameVariable: 'ANYPOINT_USERNAME',
                 passwordVariable: 'ANYPOINT_PASSWORD'
               )
             ]) {
@@ -187,20 +190,25 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
-    
+
       stage('Run tests') {
         steps {
           container('maven') {
             withCredentials([
               usernamePassword(
-                credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
-                usernameVariable: 'MULE_REPOSITORY_USERNAME', 
+                credentialsId: 'MULESOFT_NEXUS_REPOSITORY',
+                usernameVariable: 'MULE_REPOSITORY_USERNAME',
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT', 
-                usernameVariable: 'ANYPOINT_USERNAME', 
+                credentialsId: 'MULESOFT_ANYPOINT_SERVICE_ACCOUNT',
+                usernameVariable: 'ANYPOINT_USERNAME',
                 passwordVariable: 'ANYPOINT_PASSWORD'
+              ),
+              usernamePassword(
+              credentialsId: "${env.MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS}",
+              usernameVariable: 'AWS_SECRETSMANAGER_ACCESSKEY',
+              passwordVariable: 'AWS_SECRETSMANAGER_SECRETKEY'
               ),
             string(credentialsId: "${env.ANYPOINT_KEY_SECRET_NAME}", variable: 'MULESOFT_KEY')
             ]) {
@@ -215,19 +223,19 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
-    
+
       stage('Build and upload to Artifactory') {
         steps {
           container('maven') {
             withCredentials([
               usernamePassword(
-                credentialsId: 'MULESOFT_NEXUS_REPOSITORY', 
-                usernameVariable: 'MULE_REPOSITORY_USERNAME', 
+                credentialsId: 'MULESOFT_NEXUS_REPOSITORY',
+                usernameVariable: 'MULE_REPOSITORY_USERNAME',
                 passwordVariable: 'MULE_REPOSITORY_PASSWORD'
               ),
               usernamePassword(
-                credentialsId: 'artifactory_svc_mulesoft_team', 
-                usernameVariable: 'ARTIFACTORY_USERNAME', 
+                credentialsId: 'artifactory_svc_mulesoft_team',
+                usernameVariable: 'ARTIFACTORY_USERNAME',
                 passwordVariable: 'ARTIFACTORY_PASSWORD'
               ),
             ]) {
@@ -242,7 +250,7 @@ def call(String mule_project, String build_tag) {
           }
         }
       }
-    
+
       stage('Publish to Anypoint') {
         when {
           expression { env.BRANCH_NAME == 'master' }
@@ -294,7 +302,7 @@ def call(String mule_project, String build_tag) {
 String getAnypointClientSecretName(String businessGroupCode, String publishEnv) {
   String environment = publishEnv.toUpperCase()
 
-  return "MULESOFT_ANYPOINT_CLIENT_${businessGroupCode}_${environment}"
+  return "${businessGroupCode}_${environment}"
 }
 
 String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
@@ -307,4 +315,10 @@ String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
+}
+
+String getAWSSecretsManagerSecretName(String publishEnv) {
+  String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
+
+  return "MULESOFT_AWS_SECRETSMANAGER_BUSINESSAPPS_${environment}"
 }
