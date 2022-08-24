@@ -56,6 +56,26 @@ def call(String appName) {
         }
       }
 
+      stage('Snyk Security Scan') {
+                environment {
+                    ARTIFACTORY_USERNAME = '_gradle-publisher'
+                    ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+                    SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
+                }
+                steps {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    withMaven(mavenSettingsFilePath: mvnSettingsFile) {
+                        sh "mvn wrapper:wrapper"
+                        snykSecurity(
+                                snykInstallation: 'project_test',
+                                snykTokenId: 'snyk_api_token',
+                                targetFile: 'pom.xml'
+                        )
+                    }
+                  }
+                }
+            }
+
       stage('Maven Sonar') {
         environment {
           ARTIFACTORY_USERNAME = '_gradle-publisher'
