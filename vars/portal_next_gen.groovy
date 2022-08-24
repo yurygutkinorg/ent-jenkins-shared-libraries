@@ -62,6 +62,7 @@ def call(String appName) {
                     SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
                 }
                 steps {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     withMaven(mavenSettingsFilePath: mvnSettingsFile) {
                         sh "mvn wrapper:wrapper"
                         snykSecurity(
@@ -70,6 +71,7 @@ def call(String appName) {
                                 targetFile: 'pom.xml'
                         )
                     }
+                  }
                 }
             }
             stage('Maven Sonar') {
