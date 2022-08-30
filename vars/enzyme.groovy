@@ -63,6 +63,24 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                     }
                 }
             }
+            stage('Snyk Security Scan') {
+                environment {
+                    ARTIFACTORY_URL = 'https://ghi.jfrog.io/ghi/ghdna-release/'
+                    ARTIFACTORY_USERNAME = '_gradle-publisher'
+                    ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+                    SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
+                }
+                steps {
+                    container('snyk') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                          snykSecurity(
+                                        snykInstallation: 'project_test',
+                                        snykTokenId: 'snyk_api_token',
+                                )
+                        }
+                    }
+                }
+            }
 
             stage('JFrog Artifactory') {
                 environment {
@@ -71,6 +89,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                     ARTIFACTORY_PASSWORD = credentials('artifactory_password')
                 }
                 stages {
+
                     stage('Build, test and copy gradle binaries to shared directory') {
                         steps {
                             sh 'gradle clean --refresh-dependencies'
@@ -279,7 +298,7 @@ List<String> enzymeAppNamesList() {
 }
 
 String releaseVersion(String enzymeProject, String branchName) {
-    if (branchName == "master"){
+    if (branchName == "master") {
         return "master"
     }
     if (branchName.startsWith('candidate-')) {
@@ -326,6 +345,18 @@ spec:
   securityContext:
     runAsUser: 0
   containers:
+  - name: snyk
+    image: snyk/snyk-cli:gradle-5.4
+    command:
+    - cat
+    tty: true
+    resources:
+      requests:
+       memory: "1Gi"
+       cpu: "500m"
+      limits:
+       memory: "2Gi"
+       cpu: "1"
   - name: gradle
     env:
     - name: _JAVA_OPTIONS
@@ -348,7 +379,7 @@ spec:
         cpu: "2"
     volumeMounts:
     - mountPath: /shared
-      name: shared
+      name: shared     
   - name: docker
     image: docker:18
     command:
