@@ -93,15 +93,7 @@ def call(String mule_project, String build_tag) {
       BUSINESS_GROUP              = "${params.BUSINESS_GROUP}"
       GIT_TAG                     = "${env.GIT_COMMIT.substring(0,8)}"
 
-      ANYPOINT_CLIENT_SECRET_NAME = getAnypointClientSecretName(
-        businessGroupCodes[params.BUSINESS_GROUP],
-        env.TARGET_ENVIRONMENT
-      )
       ANYPOINT_KEY_SECRET_NAME    = getAnypointKeySecretName(
-        businessGroupCodes[params.BUSINESS_GROUP],
-        env.TARGET_ENVIRONMENT
-      )
-      SPLUNK_TOKEN_SECRET_NAME    = getSplunkTokenSecretName(
         businessGroupCodes[params.BUSINESS_GROUP],
         env.TARGET_ENVIRONMENT
       )
@@ -309,12 +301,6 @@ String getAnypointKeySecretName(String businessGroupCode, String publishEnv) {
   String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
 
   return "MULESOFT_ANYPOINT_KEY_${businessGroupCode}_${environment}"
-}
-
-String getSplunkTokenSecretName(String businessGroupCode, String publishEnv) {
-  String environment = (publishEnv == "prd") ? "PROD" : "NON_PROD"
-
-  return "MULESOFT_SPLUNK_TOKEN_${businessGroupCode}_${environment}"
 }
 
 String getAWSSecretsManagerSecretName(String publishEnv) {
