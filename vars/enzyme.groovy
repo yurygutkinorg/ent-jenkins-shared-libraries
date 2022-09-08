@@ -97,7 +97,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                             sh "cp -rf ./_build/*/libs/* ${env.SHARED_DIR}"
                         }
                     }
-
+                    /*
                     stage('Static code analysis') {
                         steps {
                             withSonarQubeEnv('sonar') {
@@ -110,7 +110,7 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                             }
                         }
                     }
-
+                     */
                     stage('Publish java snapshots') {
                         when { expression { utils.verifySemVer(env.RELEASE_VERSION) || env.BRANCH_NAME == "master" } }
                         environment {
