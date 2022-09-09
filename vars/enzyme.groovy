@@ -98,20 +98,18 @@ def call(String enzymeProject, String optionalArg, String anotherOptionalArg) {
                         }
                     }
                     
-                   // stage('Static code analysis') {
-                      //  steps {
-                         //   withSonarQubeEnv('sonar') {
-                               // remove after fix
-                        //        sh "echo 'passing'"
-                                //sh 'gradle --info sonarqube --stacktrace --no-daemon'
-                       //     }
-                      //  }
-                      //  post {
-                       //     always {
-                      //          archiveArtifacts(artifacts: "_build/**/*.html", fingerprint: true)
-                     //       }
-                    //    }
-                   // }
+                    stage('Static code analysis') {
+                        steps {
+                            withSonarQubeEnv('sonar') {
+                                sh 'gradle --info sonarqube --stacktrace --no-daemon'
+                            }
+                        }
+                        post {
+                            always {
+                                archiveArtifacts(artifacts: "_build/**/*.html", fingerprint: true)
+                            }
+                        }
+                    }
                     
                     stage('Publish java snapshots') {
                         when { expression { utils.verifySemVer(env.RELEASE_VERSION) || env.BRANCH_NAME == "master" } }

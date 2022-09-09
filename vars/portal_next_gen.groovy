@@ -76,21 +76,21 @@ def call(String appName) {
                 }
             }
 
-//      stage('Maven Sonar') {
-//        environment {
-//          ARTIFACTORY_USERNAME = '_gradle-publisher'
-//          ARTIFACTORY_PASSWORD = credentials('artifactory_password')
-//          SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
-//        }
-//        steps {
-//          withMaven(mavenSettingsFilePath: mvnSettingsFile) {
-//            withSonarQubeEnv('sonar') {
-//              sh "mvn clean package"
-//              sh "mvn sonar:sonar -Dsonar.login=$SONARQUBE_LOGIN_TOKEN -Dsonar.branch.name=${utils.getCurrentBranch()}"
-//             }
-//          }
-//        }
-//      }
+      stage('Maven Sonar') {
+        environment {
+          ARTIFACTORY_USERNAME = '_gradle-publisher'
+          ARTIFACTORY_PASSWORD = credentials('artifactory_password')
+          SONARQUBE_LOGIN_TOKEN = credentials('sonar_auth_token')
+        }
+        steps {
+          withMaven(mavenSettingsFilePath: mvnSettingsFile) {
+            withSonarQubeEnv('sonar') {
+              sh "mvn clean package"
+              sh "mvn sonar:sonar -Dsonar.login=$SONARQUBE_LOGIN_TOKEN -Dsonar.branch.name=${utils.getCurrentBranch()}"
+             }
+          }
+        }
+      }
      stage('Maven package build') {
         environment {
           ARTIFACTORY_USERNAME = '_gradle-publisher'
