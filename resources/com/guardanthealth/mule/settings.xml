@@ -74,6 +74,25 @@
                         <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases-ee/</url>
                     </repository>
                     <repository>
+                        <id>anypoint-exchange-v3</id>
+                        <name>Anypoint Exchange V3</name>
+                        <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+                        <layout>default</layout>
+                    </repository>
+                    <repository>
+                        <id>s3-maven-qubole-releases</id>
+                        <name>Qubole Release Repository on S3</name>
+                        <url>http://maven-qubole.s3-website-us-east-1.amazonaws.com/maven/release</url>
+                    </repository>
+                    <repository>
+                        <id>s3-maven-qubole-snapshots</id>
+                        <name>Qubole Snapshot Repository on S3</name>
+                        <url>http://maven-qubole.s3-website-us-east-1.amazonaws.com/maven/snapshot</url>
+                        <snapshots>
+                            <enabled>true</enabled>
+                        </snapshots>
+                    </repository>
+                    <repository>
                         <id>muleforge-releases</id>
                         <name>MuleForge Snapshot Repository</name>
                         <url>https://repository-master.mulesoft.org/nexus/content/repositories/releases/</url>
@@ -101,7 +120,6 @@
                         <enabled>true</enabled>
                     </snapshots>
                 </repository>
-                
             </repositories>
         </profile>
     </profiles>
